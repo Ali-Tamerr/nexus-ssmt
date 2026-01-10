@@ -39,7 +39,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-
-API_DOCUMENTATION_FOR_AI_MODELS.md
-API_SPECIFICATION.md
