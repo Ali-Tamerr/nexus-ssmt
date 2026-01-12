@@ -58,10 +58,10 @@ export function NodeEditor() {
 
   const handleSave = async () => {
     if (!activeNode) return;
-    
+
     setIsSaving(true);
     setError(null);
-    
+
     try {
       await api.nodes.update(activeNode.id, {
         title,
@@ -80,7 +80,7 @@ export function NodeEditor() {
   const handleDelete = async () => {
     if (!activeNode) return;
     if (!confirm('Are you sure you want to delete this node?')) return;
-    
+
     setIsDeleting(true);
     try {
       await api.nodes.delete(activeNode.id);
@@ -146,7 +146,7 @@ export function NodeEditor() {
           userId: currentUserId || undefined,
         });
       }
-      
+
       await api.nodes.addTag(activeNode.id, tag.id);
       addTagToNode(activeNode.id, tag);
       setNewTagName('');
@@ -216,7 +216,7 @@ export function NodeEditor() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Node title"
-              className="mt-2 w-full rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-violet-500"
+              className="mt-2 w-full rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
             />
           </div>
 
@@ -227,7 +227,7 @@ export function NodeEditor() {
               onChange={(e) => setContent(e.target.value)}
               placeholder="Add content..."
               rows={6}
-              className="mt-2 w-full resize-none rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-violet-500"
+              className="mt-2 w-full resize-none rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
             />
           </div>
 
@@ -238,11 +238,10 @@ export function NodeEditor() {
                 <button
                   key={groupNum}
                   onClick={() => setGroupId(Number(groupNum))}
-                  className={`h-8 w-8 rounded-lg transition-all ${
-                    groupId === Number(groupNum)
-                      ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900'
-                      : 'hover:scale-110'
-                  }`}
+                  className={`h-8 w-8 rounded-lg transition-all ${groupId === Number(groupNum)
+                    ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900'
+                    : 'hover:scale-110'
+                    }`}
                   style={{ backgroundColor: color }}
                 />
               ))}
@@ -285,7 +284,7 @@ export function NodeEditor() {
                     <button
                       onClick={handleAddTag}
                       disabled={!newTagName.trim()}
-                      className="w-full rounded-lg bg-violet-600 py-1.5 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+                      className="w-full rounded-lg bg-[#3B82F6] py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#265fbd] disabled:opacity-50"
                     >
                       Add Tag
                     </button>
@@ -355,7 +354,7 @@ export function NodeEditor() {
                     <button
                       onClick={handleAddAttachment}
                       disabled={!newAttachmentUrl.trim()}
-                      className="w-full rounded-lg bg-violet-600 py-1.5 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+                      className="w-full rounded-lg bg-[#3B82F6] py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#265fbd] disabled:opacity-50"
                     >
                       Add Attachment
                     </button>
@@ -413,7 +412,7 @@ export function NodeEditor() {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#265fbd] disabled:opacity-50"
         >
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Save Changes

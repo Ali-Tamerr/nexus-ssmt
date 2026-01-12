@@ -19,8 +19,8 @@ export function Navbar({ showSearch = true, onSearchClick, children }: NavbarPro
       <div className="flex items-center gap-3">
         <Link href="/" className="flex items-center gap-3">
           <div className="relative">
-            <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 opacity-75 blur" />
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900">
+            <div className="absolute -inset-1 rounded-full border-[0.2px] border-white" />
+            <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900">
               <span className="text-xl font-bold text-white">N</span>
             </div>
           </div>
@@ -33,9 +33,9 @@ export function Navbar({ showSearch = true, onSearchClick, children }: NavbarPro
 
       <div className="flex items-center gap-4">
         {children}
-        
+
         {isAuthenticated && user && showSearch && (
-          <button 
+          <button
             onClick={onSearchClick}
             className="flex items-center gap-2 rounded-lg bg-zinc-800/50 px-3 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
           >
@@ -44,7 +44,7 @@ export function Navbar({ showSearch = true, onSearchClick, children }: NavbarPro
             <kbd className="ml-2 hidden rounded bg-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-400 sm:inline">⌘K</kbd>
           </button>
         )}
-        
+
         {isAuthenticated && user && <UserMenu />}
       </div>
     </header>
@@ -69,12 +69,12 @@ export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, childr
           <ArrowLeft className="h-4 w-4" />
           <span className="text-sm">Projects</span>
         </Link>
-        
+
         <div className="h-6 w-px bg-zinc-800" />
-        
+
         <div className="flex items-center gap-2">
           {projectColor && (
-            <div 
+            <div
               className="h-3 w-3 rounded-full"
               style={{ backgroundColor: projectColor }}
             />
@@ -110,7 +110,7 @@ export function AuthNav({ onLogin, onSignup }: AuthNavProps) {
       </button>
       <button
         onClick={onSignup}
-        className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500"
+        className="rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#265fbd]"
       >
         Get Started
       </button>

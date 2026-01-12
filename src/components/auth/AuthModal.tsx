@@ -68,7 +68,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
       }
     } catch (err) {
       console.error('Auth error:', err);
-      
+
       if (err instanceof Error) {
         if (err.message.includes('404') || err.message.includes('Not Found')) {
           if (mode === 'login') {
@@ -105,11 +105,11 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm" 
-        onClick={onClose} 
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
       />
-      
+
       <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl">
         <button
           onClick={onClose}
@@ -119,15 +119,15 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
         </button>
 
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#3B82F6] to-indigo-600">
             <span className="text-2xl font-bold text-white">N</span>
           </div>
           <h2 className="text-2xl font-bold text-white">
             {mode === 'login' ? 'Welcome back' : 'Create account'}
           </h2>
           <p className="mt-2 text-sm text-zinc-400">
-            {mode === 'login' 
-              ? 'Sign in to access your knowledge graphs' 
+            {mode === 'login'
+              ? 'Sign in to access your knowledge graphs'
               : 'Start building your knowledge graph today'}
           </p>
         </div>
@@ -149,7 +149,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Your name"
-                  className="w-full rounded-lg bg-zinc-800 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-violet-500"
+                  className="w-full rounded-lg bg-zinc-800 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
                 />
               </div>
             </div>
@@ -164,7 +164,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-lg bg-zinc-800 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-violet-500"
+                className="w-full rounded-lg bg-zinc-800 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
                 required
               />
             </div>
@@ -179,7 +179,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-lg bg-zinc-800 py-3 pl-11 pr-12 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-violet-500"
+                className="w-full rounded-lg bg-zinc-800 py-3 pl-11 pr-12 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
                 required
               />
               <button
@@ -200,7 +200,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
           <button
             type="submit"
             disabled={isLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#3B82F6] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#265fbd] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading ? (
               <>

@@ -16,13 +16,13 @@ import { AuthModal } from '@/components/auth/AuthModal';
 
 export default function HomePage() {
   const router = useRouter();
-  
-  const { 
-    projects, 
-    setProjects, 
-    addProject, 
-    setCurrentProject, 
-    isCreateProjectOpen, 
+
+  const {
+    projects,
+    setProjects,
+    addProject,
+    setCurrentProject,
+    isCreateProjectOpen,
     toggleCreateProject,
     isLoading,
     setLoading,
@@ -30,7 +30,7 @@ export default function HomePage() {
   } = useGraphStore();
 
   const { user, isAuthenticated, hasHydrated } = useAuthStore();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -45,7 +45,7 @@ export default function HomePage() {
   useEffect(() => {
     const loadProjects = async () => {
       if (!user?.id) return;
-      
+
       setLoading(true);
       try {
         const fetchedProjects = await api.projects.getByUser(user.id);
@@ -102,7 +102,7 @@ export default function HomePage() {
 
   const handleOpenProject = (project: Project) => {
     setCurrentProject(project);
-    router.push(`/project/${project.id}`);
+    router.push('/project/editor');
   };
 
   const openAuth = (mode: 'login' | 'signup') => {
@@ -124,9 +124,9 @@ export default function HomePage() {
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         {!isAuthenticated ? (
-          <WelcomeHero 
-            onSignup={() => openAuth('signup')} 
-            onLogin={() => openAuth('login')} 
+          <WelcomeHero
+            onSignup={() => openAuth('signup')}
+            onLogin={() => openAuth('login')}
           />
         ) : (
           <>

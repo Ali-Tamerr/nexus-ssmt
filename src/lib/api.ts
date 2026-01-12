@@ -69,9 +69,11 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
 }
 
 async function fetchApiWithBody<T>(endpoint: string, method: string, body: unknown): Promise<T> {
+  const convertedBody = toApi(body);
+  console.log('[API] Sending body:', JSON.stringify(convertedBody, null, 2));
   return fetchApi<T>(endpoint, {
     method,
-    body: JSON.stringify(toApi(body)),
+    body: JSON.stringify(convertedBody),
   });
 }
 

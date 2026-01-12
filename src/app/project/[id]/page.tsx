@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 
@@ -22,9 +22,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const { user, isAuthenticated, hasHydrated } = useAuthStore();
-  
+
   const {
     currentProject,
     setCurrentProject,
@@ -50,10 +50,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     }
   }, [hasHydrated, isAuthenticated, router]);
 
+  const dataLoadedRef = useRef(false);
+
   useEffect(() => {
     const loadProjectData = async () => {
-      if (!isAuthenticated) return;
-      
+      if (!isAuthenticated || dataLoadedRef.current) return;
+
+      dataLoadedRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -72,16 +75,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         setLinks(projectLinks);
       } catch (err) {
         console.log('Demo mode: Using local data (API unavailable)');
-        if (!currentProject) {
-          setCurrentProject({
-            id,
-            name: 'Demo Project',
-            description: 'This is a demo project (backend unavailable)',
-            color: '#8B5CF6',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-        }
+        setCurrentProject({
+          id,
+          name: 'Project',
+          description: '',
+          color: '#3B82F6',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
         setNodes([]);
         setLinks([]);
       } finally {
@@ -92,7 +93,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     if (hasHydrated && isAuthenticated) {
       loadProjectData();
     }
-  }, [id, hasHydrated, isAuthenticated, currentProject, setCurrentProject, setNodes, setLinks, setLoading]);
+
+    return () => {
+      dataLoadedRef.current = false;
+    };
+  }, [id, hasHydrated, isAuthenticated, setCurrentProject, setNodes, setLinks, setLoading]);
 
   const handleCreateNode = async () => {
     if (!currentProject) return;
@@ -148,7 +153,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         </div>
 
         <Button
-          variant="primary"
+          variant="brand"
           onClick={handleCreateNode}
           loading={isLoading}
           icon={<Plus className="h-4 w-4" />}
