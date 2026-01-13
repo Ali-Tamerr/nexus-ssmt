@@ -192,6 +192,7 @@ export function GraphCanvas() {
   const shapes = useGraphStore(state => state.shapes);
   const setShapes = useGraphStore(state => state.setShapes);
   const addShape = useGraphStore(state => state.addShape);
+  const updateShape = useGraphStore(state => state.updateShape);
   const undo = useGraphStore(state => state.undo);
   const redo = useGraphStore(state => state.redo);
   const pushToUndoStack = useGraphStore(state => state.pushToUndoStack);
@@ -486,6 +487,9 @@ export function GraphCanvas() {
 
     if (currentProject?.id) {
       api.drawings.create(shapeToApiDrawing(newShape, currentProject.id))
+        .then(createdDrawing => {
+          updateShape(newShape.id, { id: createdDrawing.id });
+        })
         .catch(err => console.error('Failed to save drawing:', err));
     }
 
@@ -694,6 +698,9 @@ export function GraphCanvas() {
                     addShape(newShape);
                     if (currentProject?.id) {
                       api.drawings.create(shapeToApiDrawing(newShape, currentProject.id))
+                        .then(createdDrawing => {
+                          updateShape(newShape.id, { id: createdDrawing.id });
+                        })
                         .catch(err => console.error('Failed to save text:', err));
                     }
                     setTextInputPos(null);
@@ -726,6 +733,9 @@ export function GraphCanvas() {
                     addShape(newShape);
                     if (currentProject?.id) {
                       api.drawings.create(shapeToApiDrawing(newShape, currentProject.id))
+                        .then(createdDrawing => {
+                          updateShape(newShape.id, { id: createdDrawing.id });
+                        })
                         .catch(err => console.error('Failed to save text:', err));
                     }
                     setTimeout(() => {

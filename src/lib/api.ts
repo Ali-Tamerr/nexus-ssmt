@@ -225,7 +225,14 @@ export const api = {
       text?: string;
       fontSize?: number;
       fontFamily?: string;
-    }) => fetchApiWithBody<ApiDrawing>('/api/drawings', 'POST', data),
+    }) => {
+      // Bypass toApi conversion to preserve camelCase as per API docs
+      console.log('[API] Sending body (raw):', JSON.stringify(data, null, 2));
+      return fetchApi<ApiDrawing>('/api/drawings', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
     
     update: (id: string, data: Partial<{
       type: string;
@@ -236,7 +243,13 @@ export const api = {
       text: string;
       fontSize: number;
       fontFamily: string;
-    }>) => fetchApiWithBody<ApiDrawing>(`/api/drawings/${id}`, 'PUT', data),
+    }>) => {
+      // Bypass toApi conversion to preserve camelCase as per API docs
+      return fetchApi<ApiDrawing>(`/api/drawings/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
     
     delete: (id: string) =>
       fetchApi<void>(`/api/drawings/${id}`, { method: 'DELETE' }),
