@@ -195,3 +195,42 @@ export function drawSelectionBox(ctx: CanvasRenderingContext2D, shape: DrawnShap
     
     ctx.restore();
 }
+
+export function isShapeInMarquee(
+    shape: DrawnShape, 
+    marqueeStart: { x: number; y: number }, 
+    marqueeEnd: { x: number; y: number }
+): boolean {
+    const bounds = getShapeBounds(shape);
+    if (!bounds) return false;
+
+    const minMarqueeX = Math.min(marqueeStart.x, marqueeEnd.x);
+    const maxMarqueeX = Math.max(marqueeStart.x, marqueeEnd.x);
+    const minMarqueeY = Math.min(marqueeStart.y, marqueeEnd.y);
+    const maxMarqueeY = Math.max(marqueeStart.y, marqueeEnd.y);
+
+    return bounds.minX >= minMarqueeX && bounds.maxX <= maxMarqueeX &&
+           bounds.minY >= minMarqueeY && bounds.maxY <= maxMarqueeY;
+}
+
+export function drawMarquee(
+    ctx: CanvasRenderingContext2D, 
+    start: { x: number; y: number }, 
+    end: { x: number; y: number },
+    globalScale: number
+) {
+    ctx.save();
+    ctx.strokeStyle = '#3B82F6';
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
+    ctx.lineWidth = 1 / globalScale;
+    ctx.setLineDash([5 / globalScale, 3 / globalScale]);
+    
+    const x = Math.min(start.x, end.x);
+    const y = Math.min(start.y, end.y);
+    const width = Math.abs(end.x - start.x);
+    const height = Math.abs(end.y - start.y);
+    
+    ctx.fillRect(x, y, width, height);
+    ctx.strokeRect(x, y, width, height);
+    ctx.restore();
+}

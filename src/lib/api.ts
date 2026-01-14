@@ -119,6 +119,9 @@ export const api = {
     update: (id: string, data: Partial<Node>) =>
       fetchApiWithBody<Node>(`/api/nodes/${id}`, 'PUT', data),
     
+    updatePosition: (id: string, x: number, y: number) =>
+      fetchApiWithBody<Node>(`/api/nodes/${id}`, 'PATCH', { x, y }),
+    
     delete: (id: string) =>
       fetchApi<void>(`/api/nodes/${id}`, { method: 'DELETE' }),
     

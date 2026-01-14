@@ -6,7 +6,7 @@ import { useGraphStore, filterNodes } from '@/store/useGraphStore';
 import { GROUP_COLORS, RELATIONSHIP_COLORS } from '@/types/knowledge';
 import type { RelationshipType } from '@/types/knowledge';
 import { DrawingProperties } from './DrawingProperties';
-import { drawShapeOnContext, isPointNearShape, drawSelectionBox } from './drawingUtils';
+import { drawShapeOnContext, isPointNearShape, drawSelectionBox, isShapeInMarquee, drawMarquee } from './drawingUtils';
 import { DrawnShape } from '@/types/knowledge';
 import { api, ApiDrawing } from '@/lib/api';
 
@@ -31,6 +31,8 @@ export function GraphCanvas() {
   const searchQuery = useGraphStore((s) => s.searchQuery);
   const graphSettings = useGraphStore((s) => s.graphSettings);
   const setGraphSettings = useGraphStore((s) => s.setGraphSettings);
+
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
 
   const filteredNodes = useMemo(
     () => filterNodes(nodes, searchQuery),
@@ -76,19 +78,46 @@ export function GraphCanvas() {
   }, [filteredNodes, links]);
 
   const handleNodeClick = useCallback(
-    (nodeObj: { id?: string | number; x?: number; y?: number }) => {
+    (nodeObj: { id?: string | number; x?: number; y?: number }, event: MouseEvent) => {
       const node = nodes.find((n) => n.id === String(nodeObj.id));
       if (node) {
         setActiveNode(node);
+      }
+
+      const nodeId = String(nodeObj.id);
+      if (event.shiftKey) {
+        setSelectedNodeIds(prev => {
+          const next = new Set(prev);
+          if (next.has(nodeId)) {
+            next.delete(nodeId);
+          } else {
+            next.add(nodeId);
+          }
+          return next;
+        });
+      } else {
+        // If we clicked a node without shift maintaing selection if it was already selected?
+        // Usually dragging handles that. But this is CLICK (MouseUp).
+        // If it IS a click, we usually reset selection to just this node, UNLESS we dragged.
+        // But D3 suppresses click if dragged.
+        // So if we are here, we did NOT drag.
+        // So we should select ONLY this node.
+        setSelectedShapeIds(new Set());
+        setSelectedNodeIds(new Set([nodeId]));
       }
     },
     [nodes, setActiveNode]
   );
 
+  // Ref to track last hovered node ID (survives brief hover->null transitions during click)
+  const lastHoveredNodeIdRef = useRef<string | null>(null);
+
   const handleNodeHover = useCallback(
     (nodeObj: { id?: string | number } | null) => {
       if (nodeObj) {
-        const node = nodes.find((n) => n.id === String(nodeObj.id));
+        const nodeId = String(nodeObj.id);
+        lastHoveredNodeIdRef.current = nodeId;
+        const node = nodes.find((n) => n.id === nodeId);
         setHoveredNode(node || null);
       } else {
         setHoveredNode(null);
@@ -110,6 +139,7 @@ export function GraphCanvas() {
 
       const nodeId = String(node.id);
       const isActive = activeNode?.id === nodeId;
+      const isSelected = selectedNodeIds.has(nodeId);
       const isSearchMatch =
         searchQuery &&
         label.toLowerCase().includes(searchQuery.toLowerCase());
@@ -118,6 +148,16 @@ export function GraphCanvas() {
       const nodeRadius = isActive ? 8 : 6;
       const x = node.x || 0;
       const y = node.y || 0;
+
+      if (isSelected) {
+        ctx.beginPath();
+        ctx.arc(x, y, nodeRadius + 5, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#3B82F6';
+        ctx.lineWidth = 2 / globalScale;
+        ctx.setLineDash([4 / globalScale, 2 / globalScale]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
 
       if (isActive) {
         ctx.beginPath();
@@ -163,7 +203,7 @@ export function GraphCanvas() {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
       ctx.fillText(label, x, y + nodeRadius + 3);
     },
-    [activeNode, searchQuery]
+    [activeNode, searchQuery, selectedNodeIds]
   );
 
   const linkColor = useCallback((link: unknown) => {
@@ -242,6 +282,10 @@ export function GraphCanvas() {
   const [isDraggingSelection, setIsDraggingSelection] = useState(false);
   const [isHoveringShape, setIsHoveringShape] = useState(false);
   const [dragStartWorld, setDragStartWorld] = useState<{ x: number; y: number } | null>(null);
+  const [isMarqueeSelecting, setIsMarqueeSelecting] = useState(false);
+  const [marqueeStart, setMarqueeStart] = useState<{ x: number; y: number } | null>(null);
+  const [marqueeEnd, setMarqueeEnd] = useState<{ x: number; y: number } | null>(null);
+  const dragNodePrevRef = useRef<{ x: number; y: number } | null>(null);
 
   const isDrawingTool = ['pen', 'rectangle', 'diamond', 'circle', 'arrow', 'line', 'eraser'].includes(graphSettings.activeTool);
   const isTextTool = graphSettings.activeTool === 'text';
@@ -267,7 +311,10 @@ export function GraphCanvas() {
   // Handle Undo/Redo and Delete shortcuts
   const shapesRef = useRef(shapes);
   const selectedShapeIdsRef = useRef(selectedShapeIds);
-  shapesRef.current = shapes;
+  // Only sync refs with state if NOT dragging (to allow transient updates during drag)
+  if (!dragNodePrevRef.current) {
+    shapesRef.current = shapes;
+  }
   selectedShapeIdsRef.current = selectedShapeIds;
 
   useEffect(() => {
@@ -310,6 +357,26 @@ export function GraphCanvas() {
 
 
 
+  /* Use refs for callback stability to prevent ForceGraph2D handler rebinding issues */
+  const selectedNodeIdsRef = useRef(selectedNodeIds);
+  selectedNodeIdsRef.current = selectedNodeIds; // Update immediately in render body
+
+
+
+  // selectedShapeIdsRef is already defined above
+  const graphDataRef = useRef(graphData);
+  graphDataRef.current = graphData; // Update immediately in render body
+
+  /* Manual Group Drag Refs */
+  const hoveredNode = useGraphStore(s => s.hoveredNode);
+  const dragGroupRef = useRef<{
+    active: boolean;
+    startMouse: { x: number; y: number };
+    nodeId: string;
+    initialNodes: Map<string, { x: number; y: number; fx?: number; fy?: number }>;
+    initialShapes: Map<string, DrawnShape['points']>;
+  } | null>(null);
+
   const handleZoom = useCallback((transform: { x: number; y: number; k: number }) => {
     setTimeout(() => setGraphTransform(transform), 0);
   }, []);
@@ -327,9 +394,71 @@ export function GraphCanvas() {
   }, [graphTransform]);
 
   const handleContainerMouseMove = useCallback((e: React.MouseEvent) => {
+    // Manual Group Drag Logic
+    if (dragGroupRef.current?.active) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const screenX = e.clientX - rect.left;
+      const screenY = e.clientY - rect.top;
+      const worldPoint = screenToWorld(screenX, screenY);
+
+      const dx = worldPoint.x - dragGroupRef.current.startMouse.x;
+      const dy = worldPoint.y - dragGroupRef.current.startMouse.y;
+
+
+
+      // Update Nodes
+      const initialNodes = dragGroupRef.current.initialNodes;
+      graphDataRef.current.nodes.forEach((n: any) => {
+        const initPos = initialNodes.get(String(n.id));
+        if (initPos) {
+          const newX = (initPos.fx ?? initPos.x ?? 0) + dx;
+          const newY = (initPos.fy ?? initPos.y ?? 0) + dy;
+          n.fx = newX;
+          n.fy = newY;
+          n.x = newX;
+          n.y = newY;
+        }
+      });
+
+      // Update Shapes
+      const initialShapes = dragGroupRef.current.initialShapes;
+      if (initialShapes.size > 0) {
+        shapesRef.current = shapesRef.current.map(s => {
+          const initPoints = initialShapes.get(s.id);
+          if (initPoints) {
+            return {
+              ...s,
+              points: initPoints.map(p => ({ x: p.x + dx, y: p.y + dy }))
+            };
+          }
+          return s;
+        });
+      }
+      return;
+    }
+
+    // Marquee selection update
+    if (isMarqueeSelecting) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const screenX = e.clientX - rect.left;
+      const screenY = e.clientY - rect.top;
+      const worldPoint = screenToWorld(screenX, screenY);
+      setMarqueeEnd(worldPoint);
+      if (graphRef.current) {
+        const z = graphRef.current.zoom();
+        graphRef.current.zoom(z * 1.00001, 0);
+        graphRef.current.zoom(z, 0);
+      }
+      return;
+    }
+
     if (graphSettings.activeTool !== 'select') return;
 
     const rect = e.currentTarget.getBoundingClientRect();
+
+    // If dragging a node, do not interfere with overlay
+    if (dragNodePrevRef.current) return;
+
     const screenX = e.clientX - rect.left;
     const screenY = e.clientY - rect.top;
     const worldPoint = screenToWorld(screenX, screenY);
@@ -339,7 +468,224 @@ export function GraphCanvas() {
     if (isNear !== isHoveringShape) {
       setIsHoveringShape(isNear);
     }
-  }, [graphSettings.activeTool, graphTransform, shapes, screenToWorld, isHoveringShape]);
+  }, [graphSettings.activeTool, graphTransform, shapes, screenToWorld, isHoveringShape, isMarqueeSelecting]);
+
+
+
+  const handleContainerMouseDownCapture = useCallback((e: React.MouseEvent) => {
+    const selectedNodeIds = selectedNodeIdsRef.current;
+
+    if (graphSettings.activeTool !== 'select') return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const screenX = e.clientX - rect.left;
+    const screenY = e.clientY - rect.top;
+    const worldPoint = screenToWorld(screenX, screenY);
+    const scale = graphTransform.k || 1;
+
+    // Check if over a shape (let overlay handle)
+    const isOverShape = shapes.some(s => isPointNearShape(worldPoint, s, scale, 10));
+    if (isOverShape) return;
+
+    // Check if we're clicking ON a node by examining coordinates
+    // This is more reliable than depending on hover state
+    const nodeHitRadius = 15 / scale;
+    let clickedNodeId: string | null = null;
+
+    graphDataRef.current.nodes.forEach((n: any) => {
+      const dx = (n.x ?? 0) - worldPoint.x;
+      const dy = (n.y ?? 0) - worldPoint.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist <= nodeHitRadius) {
+        clickedNodeId = String(n.id);
+      }
+    });
+
+
+
+    // If we clicked on a node that is part of selection, start group drag
+    if (clickedNodeId && selectedNodeIds.has(clickedNodeId)) {
+
+
+      lastHoveredNodeIdRef.current = clickedNodeId;
+
+      const initialNodes = new Map();
+      graphDataRef.current.nodes.forEach((n: any) => {
+        if (selectedNodeIds.has(String(n.id)) && String(n.id) !== clickedNodeId) {
+          initialNodes.set(String(n.id), { x: n.x, y: n.y, fx: n.fx, fy: n.fy });
+        }
+      });
+
+      const initialShapes = new Map();
+      if (selectedShapeIdsRef.current.size > 0) {
+        shapesRef.current.forEach(s => {
+          if (selectedShapeIdsRef.current.has(s.id)) {
+            initialShapes.set(s.id, JSON.parse(JSON.stringify(s.points)));
+          }
+        });
+      }
+
+      dragGroupRef.current = {
+        active: true,
+        startMouse: worldPoint,
+        nodeId: clickedNodeId,
+        initialNodes,
+        initialShapes
+      };
+
+      return;
+    }
+
+    // If we clicked on a node that is NOT in selection, let ForceGraph handle single node drag
+    if (clickedNodeId) {
+
+      lastHoveredNodeIdRef.current = clickedNodeId;
+      return;
+    }
+
+    // Not over a node or shape - start marquee selection
+
+    lastHoveredNodeIdRef.current = null;
+
+    if (!e.shiftKey) {
+      setSelectedShapeIds(new Set());
+      setSelectedNodeIds(new Set());
+    }
+    setIsMarqueeSelecting(true);
+    setMarqueeStart(worldPoint);
+    setMarqueeEnd(worldPoint);
+  }, [screenToWorld, graphTransform, graphSettings.activeTool, shapes]);
+
+  const handleContainerMouseUpCapture = useCallback(() => {
+    // Finalize group drag
+    if (dragGroupRef.current?.active) {
+      const selectedShapeIds = selectedShapeIdsRef.current;
+      if (selectedShapeIds.size > 0) {
+        const finalShapes = shapesRef.current;
+        setShapes(finalShapes);
+        finalShapes.forEach(s => {
+          if (selectedShapeIds.has(s.id)) {
+            api.drawings.update(s.id, { points: JSON.stringify(s.points) })
+              .catch(err => console.error('Failed to update drawing:', err));
+          }
+        });
+      }
+
+      dragGroupRef.current = null;
+    }
+
+    // Finalize marquee selection
+    if (isMarqueeSelecting && marqueeStart && marqueeEnd) {
+      const minX = Math.min(marqueeStart.x, marqueeEnd.x);
+      const maxX = Math.max(marqueeStart.x, marqueeEnd.x);
+      const minY = Math.min(marqueeStart.y, marqueeEnd.y);
+      const maxY = Math.max(marqueeStart.y, marqueeEnd.y);
+
+      const newSelectedNodes = new Set<string>();
+      graphDataRef.current.nodes.forEach((n: any) => {
+        if (n.x >= minX && n.x <= maxX && n.y >= minY && n.y <= maxY) {
+          newSelectedNodes.add(String(n.id));
+        }
+      });
+
+      const newSelectedShapes = new Set<string>();
+      shapes.forEach(s => {
+        const cx = s.points.reduce((sum, p) => sum + p.x, 0) / s.points.length;
+        const cy = s.points.reduce((sum, p) => sum + p.y, 0) / s.points.length;
+        if (cx >= minX && cx <= maxX && cy >= minY && cy <= maxY) {
+          newSelectedShapes.add(s.id);
+        }
+      });
+
+
+
+      setSelectedNodeIds(newSelectedNodes);
+      setSelectedShapeIds(newSelectedShapes);
+      setIsMarqueeSelecting(false);
+      setMarqueeStart(null);
+      setMarqueeEnd(null);
+    }
+  }, [setShapes, isMarqueeSelecting, marqueeStart, marqueeEnd, shapes]);
+
+  // Handle node drag via ForceGraph - move other selected nodes along
+  const handleNodeDrag = useCallback((node: any) => {
+    if (!dragGroupRef.current?.active) return;
+    if (String(node.id) !== dragGroupRef.current.nodeId) return;
+
+    // Calculate delta from the dragged node's movement
+    const initialNodes = dragGroupRef.current.initialNodes;
+    const startMouse = dragGroupRef.current.startMouse;
+
+    // The dragged node's new position gives us the delta
+    const draggedNodeInitial = {
+      x: startMouse.x,
+      y: startMouse.y
+    };
+    const dx = (node.x ?? 0) - draggedNodeInitial.x;
+    const dy = (node.y ?? 0) - draggedNodeInitial.y;
+
+
+
+    // Update other selected nodes
+    graphDataRef.current.nodes.forEach((n: any) => {
+      const initPos = initialNodes.get(String(n.id));
+      if (initPos) {
+        const newX = (initPos.x ?? 0) + dx;
+        const newY = (initPos.y ?? 0) + dy;
+        n.fx = newX;
+        n.fy = newY;
+        n.x = newX;
+        n.y = newY;
+      }
+    });
+
+    // Update shapes
+    const initialShapes = dragGroupRef.current.initialShapes;
+    if (initialShapes.size > 0) {
+      shapesRef.current = shapesRef.current.map(s => {
+        const initPoints = initialShapes.get(s.id);
+        if (initPoints) {
+          return {
+            ...s,
+            points: initPoints.map(p => ({ x: p.x + dx, y: p.y + dy }))
+          };
+        }
+        return s;
+      });
+    }
+  }, []);
+
+  const handleNodeDragEnd = useCallback(() => {
+    if (dragGroupRef.current?.active) {
+      const selectedNodeIds = selectedNodeIdsRef.current;
+
+      // Persist node positions
+      graphDataRef.current.nodes.forEach((n: any) => {
+        if (selectedNodeIds.has(String(n.id))) {
+          api.nodes.updatePosition(String(n.id), n.x, n.y)
+            .catch(err => console.error('Failed to update node position:', err));
+        }
+      });
+
+      // Sync shapes to state and persist
+      const selectedShapeIds = selectedShapeIdsRef.current;
+      if (selectedShapeIds.size > 0) {
+        const finalShapes = shapesRef.current;
+        setShapes(finalShapes);
+        finalShapes.forEach(s => {
+          if (selectedShapeIds.has(s.id)) {
+            api.drawings.update(s.id, { points: JSON.stringify(s.points) })
+              .catch(err => console.error('Failed to update drawing:', err));
+          }
+        });
+      }
+
+      dragGroupRef.current = null;
+    }
+  }, [setShapes]);
+
+  /* End Manual Refs */
+
 
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
     if (!isDrawingTool) return;
@@ -524,7 +870,9 @@ export function GraphCanvas() {
   }, [isDrawing, currentPoints, graphSettings.activeTool, graphSettings.strokeColor, graphSettings.strokeWidth, graphSettings.strokeStyle, drawPreview, currentProject?.id, shapeToApiDrawing, addShape]);
 
   const onRenderFramePost = useCallback((ctx: CanvasRenderingContext2D, globalScale: number) => {
-    shapes.forEach(shape => {
+    // Use ref to render shapes to assume smooth dragging
+    const renderShapes = shapesRef.current;
+    renderShapes.forEach(shape => {
       drawShapeOnContext(ctx, shape, globalScale);
       if (selectedShapeIds.has(shape.id)) {
         drawSelectionBox(ctx, shape, globalScale);
@@ -542,10 +890,18 @@ export function GraphCanvas() {
       };
       drawShapeOnContext(ctx, previewShape, globalScale, true);
     }
-  }, [shapes, isDrawing, currentPoints, graphSettings.activeTool, graphSettings.strokeColor, graphSettings.strokeWidth, graphSettings.strokeStyle, selectedShapeIds]);
+
+    if (isMarqueeSelecting && marqueeStart && marqueeEnd) {
+      drawMarquee(ctx, marqueeStart, marqueeEnd, globalScale);
+    }
+  }, [shapes, isDrawing, currentPoints, graphSettings.activeTool, graphSettings.strokeColor, graphSettings.strokeWidth, graphSettings.strokeStyle, selectedShapeIds, isMarqueeSelecting, marqueeStart, marqueeEnd]);
 
   return (
-    <div ref={containerRef} className="relative h-full w-full bg-zinc-950" suppressHydrationWarning onMouseMove={handleContainerMouseMove}>
+    <div ref={containerRef} className="relative h-full w-full bg-zinc-950" suppressHydrationWarning
+      onMouseMove={handleContainerMouseMove}
+      onMouseDownCapture={handleContainerMouseDownCapture}
+      onMouseUpCapture={handleContainerMouseUpCapture}
+    >
       {isMounted ? (
         <>
           <ForceGraph2D
@@ -568,12 +924,14 @@ export function GraphCanvas() {
             linkCurvature={0.1}
             onNodeClick={handleNodeClick}
             onNodeHover={handleNodeHover}
+            onNodeDrag={handleNodeDrag}
+            onNodeDragEnd={handleNodeDragEnd}
             onBackgroundClick={() => setActiveNode(null)}
             onZoom={handleZoom}
             onRenderFramePost={onRenderFramePost}
             enableNodeDrag={!graphSettings.lockAllMovement && !isDrawingTool}
             enableZoomInteraction={true}
-            enablePanInteraction={graphSettings.activeTool === 'pan' || graphSettings.activeTool === 'select'}
+            enablePanInteraction={graphSettings.activeTool === 'pan'}
             cooldownTicks={isPreviewMode ? 100 : 0}
             d3AlphaDecay={isPreviewMode ? 0.02 : 1}
             d3VelocityDecay={isPreviewMode ? 0.3 : 0.9}
@@ -597,7 +955,11 @@ export function GraphCanvas() {
           )}
           {isSelectTool && (
             <div
-              className={`absolute inset-0 z-20 cursor-default ${isHoveringShape || isDraggingSelection ? 'pointer-events-auto' : 'pointer-events-none'}`}
+              className="absolute inset-0 z-20"
+              style={{
+                pointerEvents: (isHoveringShape || isDraggingSelection || isMarqueeSelecting) ? 'auto' : 'none',
+                cursor: isHoveringShape ? 'move' : 'crosshair'
+              }}
               onMouseDown={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const screenX = e.clientX - rect.left;
@@ -619,22 +981,41 @@ export function GraphCanvas() {
                       return next;
                     });
                   } else {
-                    setSelectedShapeIds(new Set([clickedShape.id]));
+                    if (!selectedShapeIds.has(clickedShape.id)) {
+                      setSelectedShapeIds(new Set([clickedShape.id]));
+                      setSelectedNodeIds(new Set());
+                    }
                   }
                   setIsDraggingSelection(true);
                   setDragStartWorld(worldPoint);
                   pushToUndoStack(shapes);
                 } else {
-                  setSelectedShapeIds(new Set());
+                  if (!e.shiftKey) {
+                    setSelectedShapeIds(new Set());
+                    setSelectedNodeIds(new Set());
+                  }
+                  setIsMarqueeSelecting(true);
+                  setMarqueeStart(worldPoint);
+                  setMarqueeEnd(worldPoint);
                 }
               }}
               onMouseMove={(e) => {
-                if (!isDraggingSelection || !dragStartWorld || selectedShapeIds.size === 0) return;
-
                 const rect = e.currentTarget.getBoundingClientRect();
                 const screenX = e.clientX - rect.left;
                 const screenY = e.clientY - rect.top;
                 const worldPoint = screenToWorld(screenX, screenY);
+
+                if (isMarqueeSelecting) {
+                  setMarqueeEnd(worldPoint);
+                  if (graphRef.current) {
+                    const z = graphRef.current.zoom();
+                    graphRef.current.zoom(z * 1.00001, 0);
+                    graphRef.current.zoom(z, 0);
+                  }
+                  return;
+                }
+
+                if (!isDraggingSelection || !dragStartWorld || selectedShapeIds.size === 0) return;
 
                 const dx = worldPoint.x - dragStartWorld.x;
                 const dy = worldPoint.y - dragStartWorld.y;
@@ -650,10 +1031,70 @@ export function GraphCanvas() {
                     return s;
                   });
                   setShapes(updatedShapes);
+
+                  if (selectedNodeIds.size > 0) {
+                    const currentGraphNodes = graphData.nodes as Array<{ id: string | number; x?: number; y?: number; fx?: number; fy?: number }>;
+                    currentGraphNodes.forEach(n => {
+                      if (selectedNodeIds.has(String(n.id))) {
+                        const newX = (n.fx ?? n.x ?? 0) + dx;
+                        const newY = (n.fy ?? n.y ?? 0) + dy;
+                        n.fx = newX;
+                        n.fy = newY;
+                        n.x = newX;
+                        n.y = newY;
+                      }
+                    });
+                  }
+
                   setDragStartWorld(worldPoint);
                 }
               }}
               onMouseUp={() => {
+                if (isMarqueeSelecting && marqueeStart && marqueeEnd) {
+                  const minX = Math.min(marqueeStart.x, marqueeEnd.x);
+                  const maxX = Math.max(marqueeStart.x, marqueeEnd.x);
+                  const minY = Math.min(marqueeStart.y, marqueeEnd.y);
+                  const maxY = Math.max(marqueeStart.y, marqueeEnd.y);
+
+                  const selectedShapeIdsNew = new Set<string>();
+                  shapes.forEach(s => {
+                    if (isShapeInMarquee(s, marqueeStart, marqueeEnd)) {
+                      selectedShapeIdsNew.add(s.id);
+                    }
+                  });
+                  setSelectedShapeIds(prev => {
+                    const next = new Set(prev);
+                    selectedShapeIdsNew.forEach(id => next.add(id));
+                    return next;
+                  });
+
+                  const selectedNodeIdsNew = new Set<string>();
+                  // Use local graphData which contains the current simulation state including x/y
+                  const currentGraphNodes = graphData.nodes as Array<{ id: string | number; x?: number; y?: number }>;
+                  currentGraphNodes.forEach(n => {
+                    const x = n.x || 0;
+                    const y = n.y || 0;
+                    if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+                      selectedNodeIdsNew.add(String(n.id));
+                    }
+                  });
+                  setSelectedNodeIds(prev => {
+                    const next = new Set(prev);
+                    selectedNodeIdsNew.forEach(id => next.add(id));
+                    return next;
+                  });
+
+                  setIsMarqueeSelecting(false);
+                  setMarqueeStart(null);
+                  setMarqueeEnd(null);
+                  if (graphRef.current) {
+                    const z = graphRef.current.zoom();
+                    graphRef.current.zoom(z * 1.00001, 0);
+                    graphRef.current.zoom(z, 0);
+                  }
+                  return;
+                }
+
                 if (isDraggingSelection && selectedShapeIds.size > 0) {
                   shapes.filter(s => selectedShapeIds.has(s.id)).forEach(s => {
                     api.drawings.update(s.id, { points: JSON.stringify(s.points) })
@@ -671,6 +1112,9 @@ export function GraphCanvas() {
               onMouseLeave={() => {
                 setIsDraggingSelection(false);
                 setDragStartWorld(null);
+                setIsMarqueeSelecting(false);
+                setMarqueeStart(null);
+                setMarqueeEnd(null);
               }}
             />
           )}
