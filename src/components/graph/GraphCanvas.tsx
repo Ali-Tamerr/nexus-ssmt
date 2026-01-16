@@ -64,9 +64,10 @@ export function GraphCanvas() {
       id: n.id,
       title: n.title,
       groupId: n.groupId,
+      customColor: n.customColor,
       x: n.x,
       y: n.y,
-      fx: n.x, // Fix position if saved
+      fx: n.x,
       fy: n.y,
     }));
 
@@ -157,7 +158,7 @@ export function GraphCanvas() {
 
   const nodeCanvasObject = useCallback(
     (
-      node: { id?: string | number; x?: number; y?: number; title?: string; groupId?: number },
+      node: { id?: string | number; x?: number; y?: number; title?: string; groupId?: number; customColor?: string },
       ctx: CanvasRenderingContext2D,
       globalScale: number
     ) => {
@@ -173,7 +174,7 @@ export function GraphCanvas() {
         searchQuery &&
         label.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const baseColor = GROUP_COLORS[nodeGroup] || GROUP_COLORS[0];
+      const baseColor = node.customColor || GROUP_COLORS[nodeGroup] || GROUP_COLORS[0];
       const nodeRadius = isActive ? 8 : 6;
       const x = node.x || 0;
       const y = node.y || 0;

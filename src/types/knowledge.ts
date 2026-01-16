@@ -35,6 +35,7 @@ export interface Node {
   content?: string;
   excerpt?: string;
   groupId: number;
+  customColor?: string;
   userId?: string;
   createdAt: string;
   updatedAt: string;

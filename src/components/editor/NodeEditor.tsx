@@ -29,6 +29,7 @@ export function NodeEditor() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [groupId, setGroupId] = useState(0);
+  const [customColor, setCustomColor] = useState<string | undefined>(undefined);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showTagMenu, setShowTagMenu] = useState(false);
   const [showConnectionMenu, setShowConnectionMenu] = useState(false);
@@ -47,12 +48,17 @@ export function NodeEditor() {
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
   const tagMenuRef = useRef<HTMLDivElement>(null);
   const connectionMenuRef = useRef<HTMLDivElement>(null);
+  const customColorPickerRef = useRef<HTMLDivElement>(null);
+
+  const [showCustomColorPicker, setShowCustomColorPicker] = useState(false);
+  const [tempCustomColor, setTempCustomColor] = useState('#3B82F6');
 
   useEffect(() => {
     if (activeNode) {
       setTitle(activeNode.title);
       setContent(activeNode.content || '');
       setGroupId(activeNode.groupId);
+      setCustomColor(activeNode.customColor);
     }
   }, [activeNode]);
 
@@ -66,6 +72,9 @@ export function NodeEditor() {
       }
       if (connectionMenuRef.current && !connectionMenuRef.current.contains(e.target as Node)) {
         setShowConnectionMenu(false);
+      }
+      if (customColorPickerRef.current && !customColorPickerRef.current.contains(e.target as Node)) {
+        setShowCustomColorPicker(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -85,12 +94,13 @@ export function NodeEditor() {
         content: content || '',
         excerpt: activeNode.excerpt || '',
         groupId,
+        customColor,
         projectId: activeNode.projectId,
         userId: activeNode.userId,
         x: activeNode.x,
         y: activeNode.y,
       });
-      updateNode(activeNode.id, { title, content, groupId });
+      updateNode(activeNode.id, { title, content, groupId, customColor });
     } catch (err) {
       console.error('Failed to save node:', err);
       setError(err instanceof Error ? err.message : 'Failed to save');
@@ -353,19 +363,98 @@ export function NodeEditor() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-300">Color Group</label>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Color</label>
+            <div className="flex flex-wrap gap-2 items-center">
               {Object.entries(GROUP_COLORS).map(([groupNum, color]) => (
                 <button
                   key={groupNum}
-                  onClick={() => setGroupId(Number(groupNum))}
-                  className={`h-8 w-8 rounded-lg transition-all ${groupId === Number(groupNum)
+                  onClick={() => {
+                    setGroupId(Number(groupNum));
+                    setCustomColor(undefined);
+                  }}
+                  className={`h-8 w-8 rounded-lg transition-all ${groupId === Number(groupNum) && !customColor
                     ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900'
                     : 'hover:scale-110'
                     }`}
                   style={{ backgroundColor: color }}
+                  title={`Group ${groupNum}`}
                 />
               ))}
+
+              <div className="relative" ref={customColorPickerRef}>
+                <button
+                  onClick={() => {
+                    setTempCustomColor(customColor || GROUP_COLORS[groupId]);
+                    setShowCustomColorPicker(!showCustomColorPicker);
+                  }}
+                  className={`h-8 w-8 rounded-lg border-2 transition-all flex items-center justify-center ${customColor
+                      ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900'
+                      : 'border-zinc-700 hover:border-zinc-500'
+                    }`}
+                  style={{
+                    backgroundColor: customColor || 'transparent'
+                  }}
+                  title="Custom color"
+                >
+                  {!customColor && <Plus className="h-4 w-4 text-zinc-400" />}
+                </button>
+
+                {showCustomColorPicker && (
+                  <div className="absolute left-0 top-10 z-50 rounded-lg border border-zinc-700 bg-zinc-800 p-3 shadow-xl w-48">
+                    <div className="space-y-2">
+                      <div>
+                        <label className="text-xs text-zinc-400 mb-1 block">Color Picker</label>
+                        <input
+                          type="color"
+                          value={tempCustomColor}
+                          onChange={(e) => setTempCustomColor(e.target.value)}
+                          className="w-full h-10 rounded cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-zinc-400 mb-1 block">Hex Code</label>
+                        <input
+                          type="text"
+                          value={tempCustomColor}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (/^#[0-9A-Fa-f]{0,6}$/.test(value)) {
+                              setTempCustomColor(value);
+                            }
+                          }}
+                          placeholder="#3B82F6"
+                          className="w-full rounded-lg bg-zinc-700 px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none uppercase"
+                          maxLength={7}
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (tempCustomColor.length === 7) {
+                            setCustomColor(tempCustomColor);
+                          }
+                          setShowCustomColorPicker(false);
+                        }}
+                        className="w-full mt-2 rounded-lg bg-[#3B82F6] py-1.5 text-xs font-medium text-white hover:bg-[#265fbd] transition-colors"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {customColor && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCustomColor(undefined);
+                    }}
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-zinc-700 flex items-center justify-center text-white text-xs hover:bg-zinc-600"
+                    title="Clear custom color"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
