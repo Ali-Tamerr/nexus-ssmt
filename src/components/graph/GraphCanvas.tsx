@@ -8,6 +8,7 @@ import { DrawingProperties } from './DrawingProperties';
 import { ConnectionProperties } from './ConnectionProperties';
 import { drawShapeOnContext, isPointNearShape, drawSelectionBox, isShapeInMarquee, drawMarquee } from './drawingUtils';
 import { getShapeBounds, drawResizeHandles, getHandleAtPoint, resizeShape, getCursorForHandle, ResizeHandle, ShapeBounds } from './resizeUtils';
+import { SelectionPane } from './SelectionPane';
 import { DrawnShape } from '@/types/knowledge';
 import { api, ApiDrawing } from '@/lib/api';
 
@@ -341,6 +342,8 @@ export function GraphCanvas() {
 
   const [isMiddleMousePanning, setIsMiddleMousePanning] = useState(false);
   const middleMouseStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const [showSelectionPane, setShowSelectionPane] = useState(false);
 
   const isDrawingTool = ['pen', 'rectangle', 'diamond', 'circle', 'arrow', 'line', 'eraser'].includes(graphSettings.activeTool);
   const isTextTool = graphSettings.activeTool === 'text';
@@ -1558,6 +1561,54 @@ export function GraphCanvas() {
         </svg>
         Go back to content
       </button>
+
+      <button
+        onClick={() => setShowSelectionPane(!showSelectionPane)}
+        className={`absolute bottom-4 right-4 z-30 flex items-center gap-2 rounded-lg px-3 py-2 text-sm shadow-lg backdrop-blur-sm border transition-all ${showSelectionPane
+          ? 'bg-zinc-700 text-white border-zinc-600'
+          : 'bg-zinc-800/90 text-zinc-300 border-zinc-700 hover:bg-zinc-700 hover:text-white hover:border-zinc-600'
+          }`}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+        </svg>
+        Objects
+      </button>
+
+      {showSelectionPane && (
+        <SelectionPane
+          nodes={nodes}
+          shapes={shapes}
+          selectedNodeIds={selectedNodeIds}
+          selectedShapeIds={selectedShapeIds}
+          onClose={() => setShowSelectionPane(false)}
+          onLocateNode={(nodeId, x, y) => {
+            if (graphRef.current) {
+              graphRef.current.centerAt(x, y, 500);
+              graphRef.current.zoom(1.5, 500);
+            }
+          }}
+          onLocateShape={(shapeId, x, y) => {
+            if (graphRef.current) {
+              graphRef.current.centerAt(x, y, 500);
+              graphRef.current.zoom(1.5, 500);
+            }
+          }}
+          onSelectNode={(nodeId) => {
+            const node = nodes.find(n => n.id === nodeId);
+            if (node) {
+              setActiveNode(node);
+              setSelectedNodeIds(new Set([nodeId]));
+              setSelectedShapeIds(new Set());
+            }
+          }}
+          onSelectShape={(shapeId) => {
+            setSelectedShapeIds(new Set([shapeId]));
+            setSelectedNodeIds(new Set());
+            setActiveNode(null);
+          }}
+        />
+      )}
 
       {selectedLink && (
         <ConnectionProperties
