@@ -1059,6 +1059,27 @@ export function GraphCanvas() {
       onMouseMove={handleContainerMouseMove}
       onMouseDownCapture={handleContainerMouseDownCapture}
       onMouseUpCapture={handleContainerMouseUpCapture}
+      onWheel={(e) => {
+        if (!graphRef.current) return;
+
+        if (e.ctrlKey) {
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const scale = graphTransform.k || 1;
+        const panX = e.deltaX / scale;
+        const panY = e.deltaY / scale;
+
+        const currentCenter = graphRef.current.centerAt();
+        graphRef.current.centerAt(
+          currentCenter.x + panX,
+          currentCenter.y + panY,
+          0
+        );
+      }}
     >
       {isMounted ? (
         <>
@@ -1162,27 +1183,6 @@ export function GraphCanvas() {
               style={{
                 pointerEvents: 'auto',
                 cursor: getToolCursor()
-              }}
-              onWheel={(e) => {
-                if (!graphRef.current) return;
-
-                if (e.ctrlKey) {
-                  return;
-                }
-
-                e.preventDefault();
-                e.stopPropagation();
-
-                const scale = graphTransform.k || 1;
-                const panX = e.deltaX / scale;
-                const panY = e.deltaY / scale;
-
-                const currentCenter = graphRef.current.centerAt();
-                graphRef.current.centerAt(
-                  currentCenter.x + panX,
-                  currentCenter.y + panY,
-                  0
-                );
               }}
               onMouseDown={(e) => {
                 if (e.button === 1) {
