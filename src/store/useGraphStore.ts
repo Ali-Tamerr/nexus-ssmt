@@ -144,7 +144,26 @@ export const useGraphStore = create<AppState>()(
     activeNode: null,
   }),
 
-  setNodes: (nodes) => set({ nodes }),
+  setNodes: (nodes) => {
+    // Failsafe: always assign a palette color if customColor is missing/invalid
+    const NODE_COLORS = [
+      '#8B5CF6', '#3B82F6', '#10B981', '#F59E0B',
+      '#EF4444', '#EC4899', '#06B6D4', '#84CC16',
+    ];
+    const isValid = (c) => typeof c === 'string' && c.trim() && c !== 'null' && c !== 'undefined';
+    const fixedNodes = nodes.map((n, idx) => {
+      let customColor = n.customColor;
+      if (!isValid(customColor)) {
+        if (isValid(n.color)) {
+          customColor = n.color;
+        } else {
+          customColor = NODE_COLORS[idx % NODE_COLORS.length];
+        }
+      }
+      return { ...n, customColor };
+    });
+    set({ nodes: fixedNodes });
+  },
   setLinks: (links) => set({ links }),
   setTags: (tags) => set({ tags }),
   setGraphData: (data) => set({ nodes: data.nodes, links: data.links }),

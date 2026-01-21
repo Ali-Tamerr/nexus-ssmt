@@ -12,6 +12,7 @@ interface NodePreviewPaneContentProps {
 }
 
 export function NodePreviewPaneContent({ activeNode, nodes, links, onClose }: NodePreviewPaneContentProps) {
+        console.log('[NodeEditPanelDebug]', { nodeId: activeNode.id, title: activeNode.title, customColor: activeNode.customColor, color: activeNode.color });
     const attachments = activeNode.attachments || [];
     const nodeConnections = links.filter(l => l.sourceId === activeNode.id || l.targetId === activeNode.id);
 

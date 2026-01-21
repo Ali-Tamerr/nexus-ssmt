@@ -105,12 +105,28 @@ export function GraphCanvas() {
     return { nodes: graphNodes, links: graphLinks };
   }, [filteredNodes, links]);
 
+  const isNodeDraggingRef = useRef(false);
+  const lastDragTimeRef = useRef(0);
+  const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
   const handleNodeClick = useCallback(
     (nodeObj: { id?: string | number; x?: number; y?: number }, event: MouseEvent) => {
+      // Check drag state flags
+      if (isNodeDraggingRef.current || Date.now() - lastDragTimeRef.current < 300) return;
+
+      // Check drag distance (safeguard against drag events not firing or clearing too fast)
+      if (dragStartPosRef.current && event.clientX !== undefined && event.clientY !== undefined) {
+        const dx = event.clientX - dragStartPosRef.current.x;
+        const dy = event.clientY - dragStartPosRef.current.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 5) return;
+      }
+
       const node = nodes.find((n) => n.id === String(nodeObj.id));
       if (node) {
         setActiveNode(node);
       }
+
 
       const nodeId = String(nodeObj.id);
       if (event.shiftKey) {
@@ -136,6 +152,8 @@ export function GraphCanvas() {
     },
     [nodes, setActiveNode]
   );
+
+
 
   // Ref to track last hovered node ID (survives brief hover->null transitions during click)
   const lastHoveredNodeIdRef = useRef<string | null>(null);
@@ -199,7 +217,17 @@ export function GraphCanvas() {
         searchQuery &&
         label.toLowerCase().includes(searchQuery.toLowerCase());
 
+      // Debug: log node color rendering
       const baseColor = node.customColor || groups.find(g => g.order === nodeGroup)?.color || groups[0]?.color || '#8B5CF6';
+      console.log('[NodeRenderDebug]', {
+        nodeId: node.id,
+        title: node.title,
+        customColor: node.customColor,
+        groupId: node.groupId,
+        groupColor: groups.find(g => g.order === nodeGroup)?.color,
+        fallbackColor: groups[0]?.color,
+        baseColor
+      });
       const nodeRadius = isActive ? 8 : 6;
       const x = node.x || 0;
       const y = node.y || 0;
@@ -797,6 +825,7 @@ export function GraphCanvas() {
 
 
   const handleContainerMouseDownCapture = useCallback((e: React.MouseEvent) => {
+    dragStartPosRef.current = { x: e.clientX, y: e.clientY };
     const selectedNodeIds = selectedNodeIdsRef.current;
 
     if (graphSettings.activeTool !== 'select') return;
@@ -951,6 +980,8 @@ export function GraphCanvas() {
 
   // Handle node drag via ForceGraph - move other selected nodes along
   const handleNodeDrag = useCallback((node: any) => {
+    isNodeDraggingRef.current = true;
+    lastDragTimeRef.current = Date.now();
     if (!dragGroupRef.current?.active) return;
     if (String(node.id) !== dragGroupRef.current.nodeId) return;
 
@@ -998,6 +1029,11 @@ export function GraphCanvas() {
   }, []);
 
   const handleNodeDragEnd = useCallback((node: any) => {
+    // Small delay to ensure click handler sees the drag state
+    setTimeout(() => {
+      isNodeDraggingRef.current = false;
+    }, 250);
+
     const storeNodes = useGraphStore.getState().nodes;
     const updateNode = useGraphStore.getState().updateNode;
 
@@ -1287,7 +1323,79 @@ export function GraphCanvas() {
     if (isMarqueeSelecting && marqueeStart && marqueeEnd) {
       drawMarquee(ctx, marqueeStart, marqueeEnd, globalScale);
     }
-  }, [filteredShapes, isDrawing, currentPoints, graphSettings.activeTool, graphSettings.strokeColor, graphSettings.strokeWidth, graphSettings.strokeStyle, selectedShapeIds, isMarqueeSelecting, marqueeStart, marqueeEnd, isResizing, resizeUpdateCounter]);
+  }, [filteredShapes, isDrawing, currentPoints, graphSettings.activeTool, graphSettings.strokeColor, graphSettings.strokeWidth, graphSettings.strokeStyle, selectedShapeIds, isMarqueeSelecting, marqueeStart, marqueeEnd, isResizing, resizeUpdateCounter, drawPreview, currentProject?.id, shapeToApiDrawing, addShape]);
+
+  const handleSelectMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!isSelectTool) return;
+    if (isHoveringNode) return;
+
+    if (e.button === 1) {
+      e.preventDefault();
+      setIsMiddleMousePanning(true);
+      middleMouseStartRef.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
+    if (e.button !== 0) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const screenX = e.clientX - rect.left;
+    const screenY = e.clientY - rect.top;
+    const worldPoint = screenToWorld(screenX, screenY);
+    const scale = graphTransform.k || 1;
+
+    if (selectedShapeIds.size === 1) {
+      const selectedShape = filteredShapes.find(s => selectedShapeIds.has(s.id));
+      if (selectedShape) {
+        const bounds = getShapeBounds(selectedShape);
+        if (bounds) {
+          const handle = getHandleAtPoint(worldPoint, bounds, scale);
+          if (handle) {
+            setIsResizing(true);
+            activeResizeHandleRef.current = handle;
+            resizeStartBoundsRef.current = bounds;
+            resizeDragStartRef.current = worldPoint;
+            resizingShapeIdRef.current = selectedShape.id;
+            originalShapeRef.current = { ...selectedShape, points: [...selectedShape.points] };
+            pushToUndoStack(shapes);
+            return;
+          }
+        }
+      }
+    }
+
+    const clickedShape = filteredShapes.find(s => isPointNearShape(worldPoint, s, scale, 10));
+
+    if (clickedShape) {
+      if (e.shiftKey) {
+        setSelectedShapeIds(prev => {
+          const next = new Set(prev);
+          if (next.has(clickedShape.id)) {
+            next.delete(clickedShape.id);
+          } else {
+            next.add(clickedShape.id);
+          }
+          return next;
+        });
+      } else {
+        if (!selectedShapeIds.has(clickedShape.id)) {
+          setSelectedShapeIds(new Set([clickedShape.id]));
+          setSelectedNodeIds(new Set());
+        }
+      }
+      setIsDraggingSelection(true);
+      setDragStartWorld(worldPoint);
+      pushToUndoStack(shapes);
+    } else {
+      if (!e.shiftKey) {
+        setSelectedShapeIds(new Set());
+        setSelectedNodeIds(new Set());
+      }
+      setIsMarqueeSelecting(true);
+      setMarqueeStart(worldPoint);
+      setMarqueeEnd(worldPoint);
+    }
+  }, [isSelectTool, isHoveringNode, filteredShapes, selectedShapeIds, screenToWorld, graphTransform.k, getShapeBounds, pushToUndoStack, shapes, isPointNearShape]);
 
   return (
     <div
@@ -1301,6 +1409,7 @@ export function GraphCanvas() {
       suppressHydrationWarning
       onMouseMove={handleContainerMouseMove}
       onMouseDownCapture={handleContainerMouseDownCapture}
+      onMouseDown={handleSelectMouseDown}
       onMouseUpCapture={handleContainerMouseUpCapture}
     >
       {isMounted ? (
@@ -1421,77 +1530,10 @@ export function GraphCanvas() {
             <div
               className="absolute inset-0"
               style={{
-                pointerEvents: 'auto',
+                pointerEvents: 'none',
                 cursor: getToolCursor()
               }}
-              onMouseDown={(e) => {
-                if (e.button === 1) {
-                  e.preventDefault();
-                  setIsMiddleMousePanning(true);
-                  middleMouseStartRef.current = { x: e.clientX, y: e.clientY };
-                  return;
-                }
 
-                if (e.button !== 0) return;
-
-                const rect = e.currentTarget.getBoundingClientRect();
-                const screenX = e.clientX - rect.left;
-                const screenY = e.clientY - rect.top;
-                const worldPoint = screenToWorld(screenX, screenY);
-                const scale = graphTransform.k || 1;
-
-                if (selectedShapeIds.size === 1) {
-                  const selectedShape = filteredShapes.find(s => selectedShapeIds.has(s.id));
-                  if (selectedShape) {
-                    const bounds = getShapeBounds(selectedShape);
-                    if (bounds) {
-                      const handle = getHandleAtPoint(worldPoint, bounds, scale);
-                      if (handle) {
-                        setIsResizing(true);
-                        activeResizeHandleRef.current = handle;
-                        resizeStartBoundsRef.current = bounds;
-                        resizeDragStartRef.current = worldPoint;
-                        resizingShapeIdRef.current = selectedShape.id;
-                        originalShapeRef.current = { ...selectedShape, points: [...selectedShape.points] };
-                        pushToUndoStack(shapes);
-                        return;
-                      }
-                    }
-                  }
-                }
-
-                const clickedShape = filteredShapes.find(s => isPointNearShape(worldPoint, s, scale, 10));
-
-                if (clickedShape) {
-                  if (e.shiftKey) {
-                    setSelectedShapeIds(prev => {
-                      const next = new Set(prev);
-                      if (next.has(clickedShape.id)) {
-                        next.delete(clickedShape.id);
-                      } else {
-                        next.add(clickedShape.id);
-                      }
-                      return next;
-                    });
-                  } else {
-                    if (!selectedShapeIds.has(clickedShape.id)) {
-                      setSelectedShapeIds(new Set([clickedShape.id]));
-                      setSelectedNodeIds(new Set());
-                    }
-                  }
-                  setIsDraggingSelection(true);
-                  setDragStartWorld(worldPoint);
-                  pushToUndoStack(shapes);
-                } else {
-                  if (!e.shiftKey) {
-                    setSelectedShapeIds(new Set());
-                    setSelectedNodeIds(new Set());
-                  }
-                  setIsMarqueeSelecting(true);
-                  setMarqueeStart(worldPoint);
-                  setMarqueeEnd(worldPoint);
-                }
-              }}
               onMouseMove={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const screenX = e.clientX - rect.left;

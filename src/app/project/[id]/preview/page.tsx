@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 import { api } from '@/lib/api';
+import { NODE_COLORS } from '@/lib/constants';
 import { LoadingScreen } from '@/components/ui';
 import { Node, Link as LinkType, DrawnShape } from '@/types/knowledge';
 import { NodePreviewPaneContent } from '@/components/editor/NodePreviewPane';
@@ -76,7 +77,30 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
                 const project = await api.projects.getById(id);
                 setProjectName(project.name);
 
-                const projectNodes = await api.nodes.getByProject(id);
+                let projectNodes = await api.nodes.getByProject(id);
+
+                // Robustly fix node colors: ensure every node has a valid customColor
+                projectNodes = projectNodes.map((n, idx) => {
+                    const pickPalette = () => NODE_COLORS[idx % NODE_COLORS.length];
+                    const isValid = (c: any) => typeof c === 'string' && c.trim() && c !== 'null' && c !== 'undefined';
+
+                    let customColor = n.customColor;
+                    let colorSource = 'original';
+                    if (!isValid(customColor)) {
+                        if (isValid(n.color)) {
+                            customColor = n.color;
+                            colorSource = 'color-field';
+                        } else {
+                            customColor = pickPalette();
+                            colorSource = 'palette';
+                        }
+                    }
+                    return {
+                        ...n,
+                        customColor,
+                    };
+                });
+                console.log('[NodeColorDebug][FinalNodes]', projectNodes.map(n => ({ id: n.id, title: n.title, customColor: n.customColor, color: n.color })));
                 setNodes(projectNodes);
 
                 const allLinks = await api.links.getAll();
