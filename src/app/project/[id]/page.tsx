@@ -12,12 +12,13 @@ import { LoadingScreen, LoadingOverlay } from '@/components/ui';
 import { SearchInput } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ProjectNavbar } from '@/components/layout';
-import { GraphCanvas } from '@/components/graph/GraphCanvas';
+import { GraphCanvas, GraphCanvasHandle } from '@/components/graph/GraphCanvas';
 import { GraphControls } from '@/components/graph/GraphControls';
 import { NodeEditor } from '@/components/editor/NodeEditor';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
+  const graphCanvasRef = useRef<GraphCanvasHandle>(null);
   const { id } = use(params);
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
@@ -171,12 +172,18 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     return <LoadingScreen />;
   }
 
+  // Handler for PNG export from ProjectNavbar
+  const handleExportPNG = () => {
+    graphCanvasRef.current?.exportToPNG();
+  };
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-zinc-950">
       <ProjectNavbar
         projectName={currentProject?.name}
         projectColor={currentProject?.color}
         nodeCount={filteredNodes.length}
+        onExportPNG={handleExportPNG}
       >
         <div className="w-64">
           <SearchInput
@@ -211,7 +218,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         {isLoading && nodes.length === 0 ? (
           <LoadingOverlay message="Loading graph..." />
         ) : (
-          <GraphCanvas />
+          <GraphCanvas ref={graphCanvasRef} />
         )}
       </div>
 

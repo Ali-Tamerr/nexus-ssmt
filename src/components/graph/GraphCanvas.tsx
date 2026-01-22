@@ -16,7 +16,13 @@ const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), {
   ssr: false,
 }) as any;
 
-export function GraphCanvas() {
+import { forwardRef, useImperativeHandle } from 'react';
+
+export type GraphCanvasHandle = {
+  exportToPNG: () => void;
+};
+
+export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [isMounted, setIsMounted] = useState(false);
@@ -418,6 +424,7 @@ export function GraphCanvas() {
         });
       });
 
+
       if (allPoints.length === 0) {
         setIsOutsideContent(false);
         return;
@@ -427,7 +434,6 @@ export function GraphCanvas() {
       const maxX = Math.max(...allPoints.map(p => p.x));
       const minY = Math.min(...allPoints.map(p => p.y));
       const maxY = Math.max(...allPoints.map(p => p.y));
-
       const padding = 200;
       const contentBounds = {
         minX: minX - padding,
@@ -2053,7 +2059,7 @@ export function GraphCanvas() {
       }
     </div >
   );
-}
+});
 
 function adjustBrightness(hex: string, percent: number): string {
   const num = parseInt(hex.replace('#', ''), 16);

@@ -122,43 +122,53 @@ export const useGraphStore = create<AppState>()(
   })),
   
   updateProject: async (id, updates) => {
-    const getFullProject = (state) => {
-      const project = state.projects.find((p) => p.id === id) || state.currentProject;
-      if (!project) throw new Error('Project not found');
-      return {
-        id: project.id,
-        name: updates.name ?? project.name,
-        color: updates.color ?? project.color ?? '',
-        userId: updates.userId ?? project.userId ?? '',
-        wallpaper: updates.wallpaper ?? project.wallpaper ?? '',
-        description: updates.description ?? project.description ?? '',
-      };
+    const state = useGraphStore.getState();
+    const prev = state.projects.find((p) => p.id === id) || state.currentProject;
+    if (!prev || !prev.id) return;
+
+    const merged = { ...prev, ...updates, id, updatedAt: new Date().toISOString() };
+    set((s) => ({
+      projects: s.projects.map((p) => p.id === id ? merged : p),
+      currentProject: s.currentProject?.id === id ? merged : s.currentProject
+    }));
+
+    const fullProject = {
+      id: prev.id,
+      name: updates.name ?? prev.name,
+      color: updates.color ?? prev.color ?? '',
+      userId: updates.userId ?? prev.userId ?? '',
+      wallpaper: updates.wallpaper ?? prev.wallpaper ?? '',
+      wallpaperBrightness: updates.wallpaperBrightness ?? prev.wallpaperBrightness,
+      description: updates.description ?? prev.description ?? '',
     };
+
     try {
-      const fullProject = getFullProject(useGraphStore.getState());
-      const updated = await import('@/lib/api').then(m => {
-        return m.api.projects.update(id, fullProject);
-      });
-      set((state) => {
-        const prev = state.projects.find((p) => p.id === id) || state.currentProject || {};
-        const cleanUpdated = Object.fromEntries(
-          Object.entries(updated || {}).filter(([, v]) => v !== undefined && v !== null)
-        );
-        const merged = { ...prev, ...cleanUpdated, id };
+      const updated = await import('@/lib/api').then(m => m.api.projects.update(id, fullProject));
+      const cleanUpdated = Object.fromEntries(
+        Object.entries(updated || {}).filter(([, v]) => v !== undefined && v !== null)
+      );
+      set((s) => {
+        const current = s.projects.find((p) => p.id === id) || s.currentProject;
+        if (!current) return {};
+        const finalMerged = { ...current, ...cleanUpdated, id } as Project;
         return {
-          projects: state.projects.map((p) => p.id === id ? merged : p),
-          currentProject: (state.currentProject?.id === id || prev.id === id) ? merged : state.currentProject
+          projects: s.projects.map((p) => p.id === id ? finalMerged : p),
+          currentProject: s.currentProject?.id === id ? finalMerged : s.currentProject
         };
       });
     } catch (err) {
-      set((state) => {
-        const prev = state.projects.find((p) => p.id === id) || state.currentProject || {};
-        const merged = { ...prev, ...updates, id, updatedAt: new Date().toISOString() };
-        return {
-          projects: state.projects.map((p) => p.id === id ? merged : p),
-          currentProject: (state.currentProject?.id === id || prev.id === id) ? merged : state.currentProject
-        };
-      });
+      // Revert optimistic update on failure
+      const state = useGraphStore.getState();
+      const current = state.projects.find((p) => p.id === id) || state.currentProject;
+      
+      // Only revert if we found the project and it was the one we tried to update
+      if (current) {
+        set((s) => ({
+          projects: s.projects.map((p) => p.id === id ? prev : p),
+          currentProject: s.currentProject?.id === id ? prev : s.currentProject
+        }));
+      }
+      console.error('Failed to update project:', err);
     }
   },
   
@@ -177,20 +187,24 @@ export const useGraphStore = create<AppState>()(
   }),
 
   setNodes: (nodes) => {
-    // Failsafe: always assign a palette color if customColor is missing/invalid
     const NODE_COLORS = [
       '#8B5CF6', '#3B82F6', '#10B981', '#F59E0B',
       '#EF4444', '#EC4899', '#06B6D4', '#84CC16',
     ];
-    const isValid = (c) => typeof c === 'string' && c.trim() && c !== 'null' && c !== 'undefined';
-    const fixedNodes = nodes.map((n, idx) => {
+    const hashString = (str: string) => {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return Math.abs(hash);
+    };
+    const isValid = (c: unknown): c is string => typeof c === 'string' && !!c.trim() && c !== 'null' && c !== 'undefined';
+    const fixedNodes = nodes.map((n) => {
       let customColor = n.customColor;
       if (!isValid(customColor)) {
-        if (isValid(n.color)) {
-          customColor = n.color;
-        } else {
-          customColor = NODE_COLORS[idx % NODE_COLORS.length];
-        }
+        customColor = NODE_COLORS[hashString(n.id) % NODE_COLORS.length];
       }
       return { ...n, customColor };
     });
@@ -343,18 +357,13 @@ export const useGraphStore = create<AppState>()(
       activeGroupId: newActiveGroupId,
     };
   }),
-    // Ensure at least one group exists at all times
-    addGroup: (group) => set((state) => {
-      const newGroups = [...state.groups, group];
-      return { groups: newGroups };
-    }),
-    // On initialization or if groups ever become empty, auto-create a default group
-    ensureAtLeastOneGroup: () => set((state) => {
-      if (state.groups.length === 0) {
-        return { groups: [{ id: 0, name: 'Default', color: '#808080', order: 0 }] };
-      }
-      return {};
-    }),
+  
+  ensureAtLeastOneGroup: () => set((state) => {
+    if (state.groups.length === 0) {
+      return { groups: [{ id: 0, name: 'Default', color: '#808080', order: 0 }] };
+    }
+    return {};
+  }),
   
   setActiveGroupId: (groupId) => set({ activeGroupId: groupId }),
   
@@ -387,8 +396,14 @@ export const useGraphStore = create<AppState>()(
     {
       name: 'nexus-graph',
       partialize: (state) => ({
-        currentProject: state.currentProject,
-        projects: state.projects,
+        currentProject: state.currentProject ? {
+            ...state.currentProject,
+            wallpaper: state.currentProject.wallpaper?.startsWith('url(data:') ? undefined : state.currentProject.wallpaper
+        } : null,
+        projects: state.projects.map(p => ({
+            ...p,
+            wallpaper: p.wallpaper?.startsWith('url(data:') ? undefined : p.wallpaper
+        })),
         graphSettings: state.graphSettings,
       }),
 

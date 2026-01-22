@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, ChevronDown, Image, Save, LayoutGrid, ChevronRight, Upload } from 'lucide-react';
+import { Search, ChevronDown, Image, Save, LayoutGrid, ChevronRight, Upload, Sun, Loader2 } from 'lucide-react';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGraphStore } from '@/store/useGraphStore';
@@ -58,6 +58,7 @@ interface ProjectNavbarProps {
   projectColor?: string;
   nodeCount?: number;
   children?: React.ReactNode;
+  onExportPNG?: () => void;
 }
 
 const WALLPAPER_COLORS = [
@@ -73,10 +74,12 @@ const WALLPAPER_COLORS = [
   '#1a1a1a', // Jet
 ];
 
-export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, children }: ProjectNavbarProps) {
+export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, children, onExportPNG }: ProjectNavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isWallpaperMenuOpen, setIsWallpaperMenuOpen] = useState(false);
+  const [isSaveAsMenuOpen, setIsSaveAsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const updateProject = useGraphStore(state => state.updateProject);
   const currentProject = useGraphStore(state => state.currentProject);
@@ -100,19 +103,32 @@ export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, childr
     setIsMenuOpen(false);
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && currentProject) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        updateProject(currentProject.id, { wallpaper: `url(${base64String})` });
-      };
-      reader.readAsDataURL(file);
+      setIsUploading(true);
+      try {
+        const { compressImage } = await import('@/lib/imageUtils');
+        // Compress to max 1MB
+        const compressedBase64 = await compressImage(file, 1920, 0.8, 1);
+        await updateProject(currentProject.id, { wallpaper: `url(${compressedBase64})` });
+      } catch (error) {
+        console.error('Failed to process image:', error);
+        alert('Failed to upload wallpaper. The image might be too large or there was a connection error.');
+      } finally {
+        setIsUploading(false);
+      }
     }
-    setIsWallpaperMenuOpen(false);
-    setIsMenuOpen(false);
   };
+
+  const handleBrightnessChange = (brightness: number) => {
+    if (currentProject) {
+      updateProject(currentProject.id, { wallpaperBrightness: brightness });
+    }
+  };
+
+  const isCustomWallpaper = currentProject?.wallpaper?.startsWith('url(');
+  const currentBrightness = currentProject?.wallpaperBrightness ?? 100;
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-4">
@@ -149,25 +165,36 @@ export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, childr
                   <div className="absolute left-full top-0 ml-2 w-48 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl p-2 z-50">
                     <p className="px-2 py-1 text-xs font-medium text-zinc-500 mb-1">Solid Colors</p>
                     <div className="grid grid-cols-5 gap-2 max-h-32 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-zinc-700">
-                      {WALLPAPER_COLORS.map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => handleColorSelect(color)}
-                          className="w-6 h-6 rounded-full border border-zinc-700 hover:scale-110 transition-transform"
-                          style={{ backgroundColor: color }}
-                          title={color}
-                        />
-                      ))}
+                      {WALLPAPER_COLORS.map((color) => {
+                        const isSelected = currentProject?.wallpaper === color;
+                        return (
+                          <button
+                            key={color}
+                            onClick={() => handleColorSelect(color)}
+                            className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${isSelected
+                              ? 'ring-2 ring-white ring-offset-1 ring-offset-zinc-900'
+                              : 'border border-zinc-700'
+                              }`}
+                            style={{ backgroundColor: color }}
+                            title={color}
+                          />
+                        );
+                      })}
                     </div>
 
                     <div className="my-2 border-t border-zinc-800" />
 
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+                      disabled={isUploading}
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Custom Wallpaper</span>
+                      {isUploading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5" />
+                      )}
+                      <span>{isUploading ? 'Processing...' : 'Custom Wallpaper'}</span>
                     </button>
                     <input
                       type="file"
@@ -176,17 +203,76 @@ export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, childr
                       accept="image/*"
                       onChange={handleFileUpload}
                     />
+
+                    {isCustomWallpaper && (
+                      <>
+                        <div className="my-2 border-t border-zinc-800" />
+                        <div className="px-2 py-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Sun className="w-3.5 h-3.5 text-zinc-400" />
+                            <span className="text-xs text-zinc-400">Brightness</span>
+                            <span className="text-xs text-zinc-500 ml-auto">{currentBrightness}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="20"
+                            max="100"
+                            value={currentBrightness}
+                            onChange={(e) => handleBrightnessChange(Number(e.target.value))}
+                            className="w-full h-1.5 rounded-full appearance-none bg-zinc-700 cursor-pointer
+                              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 
+                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer
+                              [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full 
+                              [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
 
-              <button
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors text-left"
-              >
-                <Save className="w-4 h-4" />
-                <span>Save as</span>
-              </button>
+
+              <div className="relative">
+                <button
+                  onClick={() => setIsSaveAsMenuOpen(!isSaveAsMenuOpen)}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Save className="w-4 h-4" />
+                    <span>Save as</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+
+                {isSaveAsMenuOpen && (
+                  <div className="absolute left-full top-0 ml-2 w-48 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl p-2 z-50">
+                    <p className="px-2 py-1 text-xs font-medium text-zinc-500 mb-1">Export as</p>
+                    <button
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+                      onClick={() => {
+                        setIsSaveAsMenuOpen(false);
+                        setIsMenuOpen(false);
+                        if (onExportPNG) onExportPNG();
+                      }}
+                    >
+                      <span>PNG</span>
+                    </button>
+                    <button
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+                      onClick={() => { setIsSaveAsMenuOpen(false); setIsMenuOpen(false); /* TODO: handle JPG export */ }}
+                    >
+                      <span>JPG</span>
+                    </button>
+                    <button
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+                      onClick={() => { setIsSaveAsMenuOpen(false); setIsMenuOpen(false); /* TODO: handle Project File export */ }}
+                    >
+                      <span>Project File</span>
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <div className="my-1 border-t border-zinc-800" />
 

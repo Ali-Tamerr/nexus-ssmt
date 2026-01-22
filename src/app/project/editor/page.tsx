@@ -244,29 +244,38 @@ export default function EditorPage() {
                 </div>
             )}
 
-            <div
-                className="relative flex-1 overflow-hidden transition-colors duration-300"
-                style={{
-                    backgroundColor: !currentProject?.wallpaper?.startsWith('url')
-                        ? (currentProject?.wallpaper || undefined)
-                        : undefined,
-                    backgroundImage: currentProject?.wallpaper?.startsWith('url')
-                        ? currentProject.wallpaper
-                        : undefined,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                }}
-            >
-                <GraphControls
-                    settings={graphSettings}
-                    onSettingsChange={setGraphSettings}
+            <div className="relative flex-1 overflow-hidden">
+                {/* Background layer - brightness filter only affects this */}
+                <div
+                    className="absolute inset-0 transition-all duration-300"
+                    style={{
+                        backgroundColor: !currentProject?.wallpaper?.startsWith('url')
+                            ? (currentProject?.wallpaper || undefined)
+                            : undefined,
+                        backgroundImage: currentProject?.wallpaper?.startsWith('url')
+                            ? currentProject.wallpaper
+                            : undefined,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        filter: currentProject?.wallpaper?.startsWith('url')
+                            ? `brightness(${(currentProject?.wallpaperBrightness ?? 100) / 100})`
+                            : undefined
+                    }}
                 />
 
-                {isLoading && nodes.length === 0 ? (
-                    <LoadingOverlay message="Loading graph..." />
-                ) : (
-                    <GraphCanvas />
-                )}
+                {/* Content layer - unaffected by brightness */}
+                <div className="relative z-10 h-full">
+                    <GraphControls
+                        settings={graphSettings}
+                        onSettingsChange={setGraphSettings}
+                    />
+
+                    {isLoading && nodes.length === 0 ? (
+                        <LoadingOverlay message="Loading graph..." />
+                    ) : (
+                        <GraphCanvas />
+                    )}
+                </div>
             </div>
 
             {isPreviewMode ? <NodePreviewPane /> : <NodeEditor />}
