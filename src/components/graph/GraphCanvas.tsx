@@ -24,8 +24,22 @@ export type GraphCanvasHandle = {
 
 export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const graphRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [isMounted, setIsMounted] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    exportToPNG: () => {
+      const canvas = containerRef.current?.querySelector('canvas');
+      if (canvas) {
+        const url = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `nexus-graph-${useGraphStore.getState().currentProject?.name || 'export'}.png`;
+        a.click();
+      }
+    }
+  }));
 
   useEffect(() => {
     setIsMounted(true);
@@ -314,7 +328,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
     [activeNode, hoveredLink]
   );
 
-  const graphRef = useRef<any>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const isPreviewMode = graphSettings.isPreviewMode;
   const prevPreviewModeRef = useRef(isPreviewMode);
@@ -555,7 +568,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
     let animationFrameId: number;
     const refresh = () => {
       if (graphRef.current) {
-        const z = graphRef.current.zoom();
+        const z = graphRef.current.zoom() || 1;
         graphRef.current.zoom(z * 1.00001, 0);
         graphRef.current.zoom(z, 0);
       }
@@ -580,7 +593,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
 
       if (e.ctrlKey || e.metaKey) {
         const zoomFactor = e.deltaY > 0 ? 0.88 : 1.12;
-        const currentZoom = graphRef.current.zoom();
+        const currentZoom = graphRef.current.zoom() || 1;
         const newZoom = Math.max(0.1, Math.min(10, currentZoom * zoomFactor));
 
         graphRef.current.zoom(newZoom, 0);
@@ -656,7 +669,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
   // Force redraw when activeGroupId changes
   useEffect(() => {
     if (graphRef.current) {
-      const z = graphRef.current.zoom();
+      const z = graphRef.current.zoom() || 1;
       graphRef.current.zoom(z * 1.00001, 0);
       setTimeout(() => graphRef.current?.zoom(z, 0), 20);
     }

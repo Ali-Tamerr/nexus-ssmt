@@ -4,7 +4,6 @@ export interface Project {
   description?: string;
   color?: string;
   wallpaper?: string;
-  wallpaperBrightness?: number;
   userId?: string;
   createdAt: string;
   updatedAt: string;

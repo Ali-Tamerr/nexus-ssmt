@@ -7,6 +7,7 @@ import { Plus } from 'lucide-react';
 import { useGraphStore, filterNodes } from '@/store/useGraphStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { api } from '@/lib/api';
+import { decodeWallpaper } from '@/lib/imageUtils';
 
 import { LoadingScreen, LoadingOverlay } from '@/components/ui';
 import { SearchInput } from '@/components/ui/Input';
@@ -75,8 +76,7 @@ export default function EditorPage() {
                 const mergedProject = {
                     ...currentProject,
                     ...apiProject,
-                    wallpaper: apiProject.wallpaper || currentProject?.wallpaper,
-                    wallpaperBrightness: apiProject.wallpaperBrightness ?? currentProject?.wallpaperBrightness ?? 100,
+                    wallpaper: decodeWallpaper(apiProject.wallpaper) || currentProject?.wallpaper,
                 };
                 setCurrentProject(mergedProject);
 
@@ -255,9 +255,15 @@ export default function EditorPage() {
                 <div
                     className="absolute inset-0 transition-all duration-300"
                     style={{
-                        backgroundColor: currentProject?.wallpaper?.startsWith('#')
-                            ? currentProject.wallpaper
-                            : undefined
+                        ...(currentProject?.wallpaper?.startsWith('#')
+                            ? { backgroundColor: currentProject.wallpaper }
+                            : currentProject?.wallpaper
+                                ? {
+                                    backgroundImage: `url(data:image/png;base64,${currentProject.wallpaper})`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center'
+                                }
+                                : undefined)
                     }}
                 />
 

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Project, Node, Link, GraphData, GraphSettings, Tag, Attachment, DrawnShape } from '@/types/knowledge';
 import type { Group } from '@/components/graph/GroupsTabs';
+import { encodeWallpaper, decodeWallpaper } from '@/lib/imageUtils';
 
 interface AppState {
   projects: Project[];
@@ -137,13 +138,17 @@ export const useGraphStore = create<AppState>()(
       name: updates.name ?? prev.name,
       color: updates.color ?? prev.color ?? '',
       userId: updates.userId ?? prev.userId ?? '',
-      wallpaper: updates.wallpaper ?? prev.wallpaper ?? '',
-      wallpaperBrightness: updates.wallpaperBrightness ?? prev.wallpaperBrightness,
+      wallpaper: encodeWallpaper(updates.wallpaper ?? prev.wallpaper ?? ''),
       description: updates.description ?? prev.description ?? '',
     };
 
     try {
       const updated = await import('@/lib/api').then(m => m.api.projects.update(id, fullProject));
+      
+      if (updated && updated.wallpaper) {
+        updated.wallpaper = decodeWallpaper(updated.wallpaper);
+      }
+
       const cleanUpdated = Object.fromEntries(
         Object.entries(updated || {}).filter(([, v]) => v !== undefined && v !== null)
       );

@@ -6,6 +6,7 @@ import { Search, ChevronDown, Image, Save, LayoutGrid, ChevronRight } from 'luci
 import { UserMenu } from '@/components/auth/UserMenu';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGraphStore } from '@/store/useGraphStore';
+import { createColorImage } from '@/lib/imageUtils';
 
 interface NavbarProps {
   showSearch?: boolean;
@@ -95,7 +96,8 @@ export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, childr
 
   const handleColorSelect = (color: string) => {
     if (currentProject) {
-      updateProject(currentProject.id, { wallpaper: color });
+      const base64Image = createColorImage(color);
+      updateProject(currentProject.id, { wallpaper: base64Image });
     }
     setIsWallpaperMenuOpen(false);
     setIsMenuOpen(false);
@@ -120,41 +122,28 @@ export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, childr
 
           {isMenuOpen && (
             <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl p-1.5 z-50 flex flex-col gap-1">
-              <div className="relative">
-                <button
-                  onClick={() => setIsWallpaperMenuOpen(!isWallpaperMenuOpen)}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors text-left"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Image className="w-4 h-4" />
-                    <span>Change wallpaper</span>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-
-                {isWallpaperMenuOpen && (
-                  <div className="absolute left-full top-0 ml-2 w-48 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl p-2 z-50">
-                    <p className="px-2 py-1 text-xs font-medium text-zinc-500 mb-1">Solid Colors</p>
-                    <div className="grid grid-cols-5 gap-2 max-h-32 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-zinc-700">
-                      {WALLPAPER_COLORS.map((color) => {
-                        const isSelected = currentProject?.wallpaper === color;
-                        return (
-                          <button
-                            key={color}
-                            onClick={() => handleColorSelect(color)}
-                            className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${isSelected
-                              ? 'ring-2 ring-white ring-offset-1 ring-offset-zinc-900'
-                              : 'border border-zinc-700'
-                              }`}
-                            style={{ backgroundColor: color }}
-                            title={color}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+              <div className="px-3 py-2">
+                <p className="text-xs font-medium text-zinc-500 mb-2">Wallpaper</p>
+                <div className="grid grid-cols-5 gap-2 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700">
+                  {WALLPAPER_COLORS.map((color) => {
+                    const isSelected = currentProject?.wallpaper === color;
+                    return (
+                      <button
+                        key={color}
+                        onClick={() => handleColorSelect(color)}
+                        className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${isSelected
+                          ? 'ring-2 ring-white ring-offset-1 ring-offset-zinc-900'
+                          : 'border border-zinc-700'
+                          }`}
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      />
+                    );
+                  })}
+                </div>
               </div>
+
+              <div className="my-1 border-t border-zinc-800" />
 
 
               <div className="relative">
