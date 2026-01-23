@@ -6,7 +6,7 @@ import { useGraphStore, filterNodes } from '@/store/useGraphStore';
 import { DrawingProperties } from './DrawingProperties';
 import { ConnectionProperties } from './ConnectionProperties';
 import { drawShapeOnContext, isPointNearShape, drawSelectionBox, isShapeInMarquee, drawMarquee } from './drawingUtils';
-import { getShapeBounds, drawResizeHandles, getHandleAtPoint, resizeShape, getCursorForHandle, ResizeHandle, ShapeBounds } from './resizeUtils';
+import { getShapeBounds, drawResizeHandles, getHandleAtPoint, resizeShape, rotateShape, getCursorForHandle, ResizeHandle, ShapeBounds } from './resizeUtils';
 import { SelectionPane } from './SelectionPane';
 import { GroupsTabs, getNextGroupColor } from './GroupsTabs';
 import { DrawnShape } from '@/types/knowledge';
@@ -1709,7 +1709,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
             <div
               className="absolute inset-0"
               style={{
-                pointerEvents: 'none',
+                pointerEvents: 'auto',
                 cursor: getToolCursor()
               }}
 
@@ -1745,14 +1745,26 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
                 }
 
                 if (isResizing && activeResizeHandleRef.current && resizeStartBoundsRef.current && resizeDragStartRef.current && originalShapeRef.current) {
-                  const resizedShape = resizeShape(
-                    originalShapeRef.current,
-                    activeResizeHandleRef.current,
-                    worldPoint,
-                    resizeDragStartRef.current,
-                    resizeStartBoundsRef.current
-                  );
-                  shapesRef.current = shapesRef.current.map(s => s.id === resizedShape.id ? resizedShape : s);
+                  let transformedShape;
+
+                  if (activeResizeHandleRef.current === 'rotate') {
+                    transformedShape = rotateShape(
+                      originalShapeRef.current,
+                      worldPoint,
+                      resizeDragStartRef.current,
+                      resizeStartBoundsRef.current
+                    );
+                  } else {
+                    transformedShape = resizeShape(
+                      originalShapeRef.current,
+                      activeResizeHandleRef.current,
+                      worldPoint,
+                      resizeDragStartRef.current,
+                      resizeStartBoundsRef.current
+                    );
+                  }
+
+                  shapesRef.current = shapesRef.current.map(s => s.id === transformedShape.id ? transformedShape : s);
                   setResizeUpdateCounter(c => c + 1);
 
                   if (graphRef.current) {

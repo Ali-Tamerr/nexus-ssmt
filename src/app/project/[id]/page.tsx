@@ -16,6 +16,7 @@ import { GraphCanvas, GraphCanvasHandle } from '@/components/graph/GraphCanvas';
 import { GraphControls } from '@/components/graph/GraphControls';
 import { NodeEditor } from '@/components/editor/NodeEditor';
 import { CommandPalette } from '@/components/ui/CommandPalette';
+import { exportProjectAsNxus } from '@/lib/projectExport';
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
@@ -39,6 +40,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     addNode,
     isLoading,
     setLoading,
+    shapes,
+    groups,
   } = useGraphStore();
 
   useEffect(() => {
@@ -175,6 +178,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   // Handler for PNG export from ProjectNavbar
   const handleExportPNG = () => {
     graphCanvasRef.current?.exportToPNG();
+  };
+
+  const handleExportProject = async () => {
+    if (!currentProject) return;
+
+    try {
+      await exportProjectAsNxus(currentProject, nodes, setLinks((s) => s), shapes, groups);
+    } catch (err) {
+      console.error('Failed to export project:', err);
+    }
   };
 
   return (

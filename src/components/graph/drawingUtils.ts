@@ -150,9 +150,22 @@ export function isPointNearShape(point: {x: number, y: number}, shape: DrawnShap
     return point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY;
 }
 
-export function getShapeBounds(shape: DrawnShape): { minX: number; maxX: number; minY: number; maxY: number } | null {
+export function getShapeBounds(shape: DrawnShape, ctx?: CanvasRenderingContext2D): { minX: number; maxX: number; minY: number; maxY: number } | null {
     const { points } = shape;
     if (!points || points.length === 0) return null;
+
+    if (shape.type === 'text' && shape.text && points.length > 0) {
+        const fontSize = shape.fontSize || 16;
+        const textWidth = shape.text.length * fontSize * 0.6;
+        const textHeight = fontSize * 1.2;
+        
+        return {
+            minX: points[0].x,
+            maxX: points[0].x + textWidth,
+            minY: points[0].y,
+            maxY: points[0].y + textHeight
+        };
+    }
 
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (const p of points) {
@@ -166,32 +179,55 @@ export function getShapeBounds(shape: DrawnShape): { minX: number; maxX: number;
 }
 
 export function drawSelectionBox(ctx: CanvasRenderingContext2D, shape: DrawnShape, globalScale: number) {
-    const bounds = getShapeBounds(shape);
+    const bounds = getShapeBounds(shape, ctx);
     if (!bounds) return;
 
     const padding = 5 / globalScale;
     const { minX, maxX, minY, maxY } = bounds;
+    const width = maxX - minX + padding * 2;
+    const height = maxY - minY + padding * 2;
 
     ctx.save();
-    ctx.strokeStyle = '#3B82F6';
-    ctx.lineWidth = 2 / globalScale;
-    ctx.setLineDash([5 / globalScale, 3 / globalScale]);
-    ctx.strokeRect(minX - padding, minY - padding, maxX - minX + padding * 2, maxY - minY + padding * 2);
     
-    const handleSize = 8 / globalScale;
-    ctx.fillStyle = '#3B82F6';
+    ctx.strokeStyle = '#0D99FF';
+    ctx.lineWidth = 1.5 / globalScale;
     ctx.setLineDash([]);
+    ctx.strokeRect(minX - padding, minY - padding, width, height);
+
+    const rotationHandleY = minY - padding - 25 / globalScale;
+    const centerX = minX - padding + width / 2;
     
-    const corners = [
-        { x: minX - padding, y: minY - padding },
-        { x: maxX + padding, y: minY - padding },
-        { x: minX - padding, y: maxY + padding },
-        { x: maxX + padding, y: maxY + padding },
-    ];
+    ctx.beginPath();
+    ctx.moveTo(centerX, minY - padding);
+    ctx.lineTo(centerX, rotationHandleY + 8 / globalScale);
+    ctx.strokeStyle = '#0D99FF';
+    ctx.lineWidth = 1.5 / globalScale;
+    ctx.stroke();
     
-    for (const corner of corners) {
-        ctx.fillRect(corner.x - handleSize / 2, corner.y - handleSize / 2, handleSize, handleSize);
-    }
+    ctx.beginPath();
+    ctx.arc(centerX, rotationHandleY, 6 / globalScale, 0, 2 * Math.PI);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+    ctx.strokeStyle = '#0D99FF';
+    ctx.lineWidth = 1.5 / globalScale;
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.arc(centerX, rotationHandleY, 3 / globalScale, -Math.PI * 0.7, Math.PI * 0.3);
+    ctx.strokeStyle = '#0D99FF';
+    ctx.lineWidth = 1 / globalScale;
+    ctx.stroke();
+    
+    const arrowSize = 2 / globalScale;
+    const arrowAngle = Math.PI * 0.3;
+    const arrowX = centerX + 3 / globalScale * Math.cos(arrowAngle);
+    const arrowY = rotationHandleY + 3 / globalScale * Math.sin(arrowAngle);
+    ctx.beginPath();
+    ctx.moveTo(arrowX, arrowY);
+    ctx.lineTo(arrowX + arrowSize, arrowY - arrowSize);
+    ctx.moveTo(arrowX, arrowY);
+    ctx.lineTo(arrowX + arrowSize, arrowY + arrowSize);
+    ctx.stroke();
     
     ctx.restore();
 }

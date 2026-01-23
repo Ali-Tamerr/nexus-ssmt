@@ -1,6 +1,6 @@
 import { DrawnShape } from '@/types/knowledge';
 
-export type ResizeHandle = 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'e' | 'w';
+export type ResizeHandle = 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'e' | 'w' | 'rotate';
 
 export interface ShapeBounds {
   minX: number;
@@ -13,6 +13,21 @@ export interface ShapeBounds {
 
 export function getShapeBounds(shape: DrawnShape): ShapeBounds | null {
   if (shape.points.length === 0) return null;
+
+  if (shape.type === 'text' && shape.text) {
+    const fontSize = shape.fontSize || 16;
+    const textWidth = shape.text.length * fontSize * 0.6;
+    const textHeight = fontSize * 1.2;
+    
+    return {
+      minX: shape.points[0].x,
+      minY: shape.points[0].y,
+      maxX: shape.points[0].x + textWidth,
+      maxY: shape.points[0].y + textHeight,
+      width: textWidth,
+      height: textHeight,
+    };
+  }
 
   const xs = shape.points.map(p => p.x);
   const ys = shape.points.map(p => p.y);
@@ -34,19 +49,22 @@ export function getShapeBounds(shape: DrawnShape): ShapeBounds | null {
 
 export function getResizeHandlePosition(
   bounds: ShapeBounds,
-  handle: ResizeHandle
+  handle: ResizeHandle,
+  globalScale: number = 1
 ): { x: number; y: number } {
   const { minX, minY, maxX, maxY, width, height } = bounds;
+  const padding = 5 / globalScale;
   
   switch (handle) {
-    case 'nw': return { x: minX, y: minY };
-    case 'ne': return { x: maxX, y: minY };
-    case 'sw': return { x: minX, y: maxY };
-    case 'se': return { x: maxX, y: maxY };
-    case 'n': return { x: minX + width / 2, y: minY };
-    case 's': return { x: minX + width / 2, y: maxY };
-    case 'e': return { x: maxX, y: minY + height / 2 };
-    case 'w': return { x: minX, y: minY + height / 2 };
+    case 'nw': return { x: minX - padding, y: minY - padding };
+    case 'ne': return { x: maxX + padding, y: minY - padding };
+    case 'sw': return { x: minX - padding, y: maxY + padding };
+    case 'se': return { x: maxX + padding, y: maxY + padding };
+    case 'n': return { x: minX + width / 2, y: minY - padding };
+    case 's': return { x: minX + width / 2, y: maxY + padding };
+    case 'e': return { x: maxX + padding, y: minY + height / 2 };
+    case 'w': return { x: minX - padding, y: minY + height / 2 };
+    case 'rotate': return { x: minX + width / 2, y: minY - padding - 25 / globalScale };
   }
 }
 
@@ -55,25 +73,23 @@ export function drawResizeHandles(
   bounds: ShapeBounds,
   globalScale: number
 ) {
-  const handleSize = 8 / globalScale;
+  ctx.save();
+  
+  const handleRadius = 4 / globalScale;
   const handles: ResizeHandle[] = ['nw', 'ne', 'sw', 'se', 'n', 's', 'e', 'w'];
   
-  ctx.fillStyle = '#3B82F6';
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 1.5 / globalScale;
-  
   handles.forEach(handle => {
-    const pos = getResizeHandlePosition(bounds, handle);
+    const pos = getResizeHandlePosition(bounds, handle, globalScale);
     ctx.beginPath();
-    ctx.rect(
-      pos.x - handleSize / 2,
-      pos.y - handleSize / 2,
-      handleSize,
-      handleSize
-    );
+    ctx.arc(pos.x, pos.y, handleRadius, 0, 2 * Math.PI);
+    ctx.fillStyle = '#FFFFFF';
     ctx.fill();
+    ctx.strokeStyle = '#0D99FF';
+    ctx.lineWidth = 1.5 / globalScale;
     ctx.stroke();
   });
+  
+  ctx.restore();
 }
 
 export function getHandleAtPoint(
@@ -81,16 +97,16 @@ export function getHandleAtPoint(
   bounds: ShapeBounds,
   globalScale: number
 ): ResizeHandle | null {
-  const handleSize = 8 / globalScale;
-  const handles: ResizeHandle[] = ['nw', 'ne', 'sw', 'se', 'n', 's', 'e', 'w'];
+  const handleRadius = 8 / globalScale;
+  const handles: ResizeHandle[] = ['rotate', 'nw', 'ne', 'sw', 'se', 'n', 's', 'e', 'w'];
   
   for (const handle of handles) {
-    const pos = getResizeHandlePosition(bounds, handle);
+    const pos = getResizeHandlePosition(bounds, handle, globalScale);
     const dx = point.x - pos.x;
     const dy = point.y - pos.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
-    if (distance <= handleSize) {
+    if (distance <= handleRadius) {
       return handle;
     }
   }
@@ -176,6 +192,36 @@ export function resizeShape(
   };
 }
 
+export function rotateShape(
+  shape: DrawnShape,
+  currentPoint: { x: number; y: number },
+  startPoint: { x: number; y: number },
+  bounds: ShapeBounds
+): DrawnShape {
+  const centerX = bounds.minX + bounds.width / 2;
+  const centerY = bounds.minY + bounds.height / 2;
+  
+  const startAngle = Math.atan2(startPoint.y - centerY, startPoint.x - centerX);
+  const currentAngle = Math.atan2(currentPoint.y - centerY, currentPoint.x - centerX);
+  const deltaAngle = currentAngle - startAngle;
+  
+  const newPoints = shape.points.map(p => {
+    const dx = p.x - centerX;
+    const dy = p.y - centerY;
+    const cos = Math.cos(deltaAngle);
+    const sin = Math.sin(deltaAngle);
+    return {
+      x: centerX + dx * cos - dy * sin,
+      y: centerY + dx * sin + dy * cos,
+    };
+  });
+  
+  return {
+    ...shape,
+    points: newPoints,
+  };
+}
+
 export function getCursorForHandle(handle: ResizeHandle | null): string {
   if (!handle) return 'default';
   
@@ -192,6 +238,8 @@ export function getCursorForHandle(handle: ResizeHandle | null): string {
     case 'e':
     case 'w':
       return 'ew-resize';
+    case 'rotate':
+      return 'grab';
     default:
       return 'default';
   }
