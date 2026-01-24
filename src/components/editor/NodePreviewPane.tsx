@@ -12,7 +12,7 @@ interface NodePreviewPaneContentProps {
 }
 
 export function NodePreviewPaneContent({ activeNode, nodes, links, onClose }: NodePreviewPaneContentProps) {
-        console.log('[NodeEditPanelDebug]', { nodeId: activeNode.id, title: activeNode.title, customColor: activeNode.customColor, color: activeNode.color });
+    console.log('[NodeEditPanelDebug]', { nodeId: activeNode.id, title: activeNode.title, customColor: activeNode.customColor, color: activeNode.color });
     const attachments = activeNode.attachments || [];
     const nodeConnections = links.filter(l => l.sourceId === activeNode.id || l.targetId === activeNode.id);
 
@@ -95,7 +95,7 @@ export function NodePreviewPaneContent({ activeNode, nodes, links, onClose }: No
                                             <div className="flex items-center gap-2">
                                                 <div
                                                     className="h-2 w-2 rounded-full"
-                                                    style={{ backgroundColor: link.color || '#3B82F6' }}
+                                                    style={{ backgroundColor: link.color || '#355ea1' }}
                                                 />
                                                 <span className="text-xs text-zinc-500">
                                                     {isOutgoing ? 'To' : 'From'}

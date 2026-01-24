@@ -15,12 +15,12 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-[#3B82F6] text-white hover:bg-[#265fbd]',
+  primary: 'bg-[#355ea1] text-white hover:bg-[#265fbd]',
   secondary: 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white',
   ghost: 'text-zinc-400 hover:bg-zinc-800 hover:text-white',
   danger: 'bg-red-600 text-white hover:bg-red-500',
   success: 'bg-emerald-600 text-white hover:bg-emerald-500',
-  brand: 'bg-[#3B82F6] text-white hover:bg-[#2563EB]',
+  brand: 'bg-[#355ea1] text-white hover:bg-[#2563EB]',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

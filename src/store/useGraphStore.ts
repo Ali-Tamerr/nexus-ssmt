@@ -97,7 +97,7 @@ export const useGraphStore = create<AppState>()(
         lockAllMovement: false,
         activeTool: 'select',
         strokeWidth: 2,
-        strokeColor: '#3B82F6',
+        strokeColor: '#355ea1',
         strokeStyle: 'solid',
         fontSize: 16,
         fontFamily: 'Inter',
@@ -193,7 +193,7 @@ export const useGraphStore = create<AppState>()(
 
   setNodes: (nodes) => {
     const NODE_COLORS = [
-      '#8B5CF6', '#3B82F6', '#10B981', '#F59E0B',
+      '#8B5CF6', '#355ea1', '#10B981', '#F59E0B',
       '#EF4444', '#EC4899', '#06B6D4', '#84CC16',
     ];
     const hashString = (str: string) => {

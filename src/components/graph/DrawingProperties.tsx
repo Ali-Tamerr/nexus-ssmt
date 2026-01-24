@@ -71,7 +71,7 @@ export function DrawingProperties({
                                     key={font.id}
                                     onClick={() => onFontFamilyChange(font.id)}
                                     className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${fontFamily === font.id
-                                        ? 'bg-[#3B82F6] text-white'
+                                        ? 'bg-[#355ea1] text-white'
                                         : 'bg-zinc-800 text-zinc-400 hover:text-white'
                                         }`}
                                     style={{ fontFamily: font.id }}
@@ -90,7 +90,7 @@ export function DrawingProperties({
                                     key={size}
                                     onClick={() => onFontSizeChange(size)}
                                     className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${fontSize === size
-                                        ? 'bg-[#3B82F6] text-white'
+                                        ? 'bg-[#355ea1] text-white'
                                         : 'bg-zinc-800 text-zinc-400 hover:text-white'
                                         }`}
                                 >
@@ -112,7 +112,7 @@ export function DrawingProperties({
                                     key={w}
                                     onClick={() => onStrokeWidthChange(w)}
                                     className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${strokeWidth === w
-                                        ? 'bg-[#3B82F6] text-white'
+                                        ? 'bg-[#355ea1] text-white'
                                         : 'bg-zinc-800 text-zinc-400 hover:text-white'
                                         }`}
                                 >
@@ -128,7 +128,7 @@ export function DrawingProperties({
                             <button
                                 onClick={() => onStrokeStyleChange('solid')}
                                 className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${strokeStyle === 'solid'
-                                    ? 'bg-[#3B82F6] text-white'
+                                    ? 'bg-[#355ea1] text-white'
                                     : 'bg-zinc-800 text-zinc-400 hover:text-white'
                                     }`}
                             >
@@ -137,7 +137,7 @@ export function DrawingProperties({
                             <button
                                 onClick={() => onStrokeStyleChange('dashed')}
                                 className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${strokeStyle === 'dashed'
-                                    ? 'bg-[#3B82F6] text-white'
+                                    ? 'bg-[#355ea1] text-white'
                                     : 'bg-zinc-800 text-zinc-400 hover:text-white'
                                     }`}
                             >
@@ -146,7 +146,7 @@ export function DrawingProperties({
                             <button
                                 onClick={() => onStrokeStyleChange('dotted')}
                                 className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${strokeStyle === 'dotted'
-                                    ? 'bg-[#3B82F6] text-white'
+                                    ? 'bg-[#355ea1] text-white'
                                     : 'bg-zinc-800 text-zinc-400 hover:text-white'
                                     }`}
                             >

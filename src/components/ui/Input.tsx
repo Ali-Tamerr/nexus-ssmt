@@ -28,7 +28,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             className={`
               w-full rounded-lg bg-zinc-800 text-sm text-white placeholder-zinc-500
-              outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#3B82F6]
+              outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#355ea1]
               ${icon ? 'pl-10 pr-4' : 'px-4'} py-2.5
               ${error ? 'ring-red-500' : ''}
               ${className}
@@ -62,7 +62,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
           ref={ref}
           className={`
             w-full rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500
-            outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#3B82F6] resize-none
+            outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#355ea1] resize-none
             ${error ? 'ring-red-500' : ''}
             ${className}
           `}

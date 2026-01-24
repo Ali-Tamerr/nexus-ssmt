@@ -118,7 +118,7 @@ export function SelectionPane({
                                     >
                                         <span
                                             className="w-3 h-3 rounded-full flex-shrink-0"
-                                            style={{ backgroundColor: node.customColor || '#3B82F6' }}
+                                            style={{ backgroundColor: node.customColor || '#355ea1' }}
                                         />
                                         <span className="flex-1 truncate">{node.title || 'Untitled Node'}</span>
                                         <button

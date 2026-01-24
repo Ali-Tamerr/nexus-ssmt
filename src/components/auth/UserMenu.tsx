@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { LogOut, Settings, User, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { ProfileModal } from './ProfileModal';
 
 export function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -39,7 +41,7 @@ export function UserMenu() {
             className="h-8 w-8 rounded-full object-cover"
           />
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#3B82F6] text-sm font-semibold text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#355ea1] text-sm font-semibold text-white">
             {initials}
           </div>
         )}
@@ -60,9 +62,15 @@ export function UserMenu() {
             <p className="font-medium text-white">{user.displayName || 'User'}</p>
             <p className="text-sm text-zinc-500 truncate">{user.email}</p>
           </div>
-          
+
           <div className="py-1">
-            <button className="flex w-full items-center gap-3 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800">
+            <button
+              onClick={() => {
+                setShowProfileModal(true);
+                setIsOpen(false);
+              }}
+              className="flex w-full items-center gap-3 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800"
+            >
               <User className="h-4 w-4" />
               Profile
             </button>
@@ -86,6 +94,7 @@ export function UserMenu() {
           </div>
         </div>
       )}
+      <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </div>
   );
 }

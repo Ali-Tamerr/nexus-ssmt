@@ -82,7 +82,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           id,
           name: 'Project',
           description: '',
-          color: '#3B82F6',
+          color: '#355ea1',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
@@ -106,7 +106,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     if (!currentProject) return;
 
     const GROUP_COLORS: Record<number, string> = {
-      0: '#8B5CF6', 1: '#3B82F6', 2: '#10B981', 3: '#F59E0B',
+      0: '#8B5CF6', 1: '#355ea1', 2: '#10B981', 3: '#F59E0B',
       4: '#EF4444', 5: '#EC4899', 6: '#06B6D4', 7: '#84CC16',
     };
     const colors = Object.values(GROUP_COLORS);

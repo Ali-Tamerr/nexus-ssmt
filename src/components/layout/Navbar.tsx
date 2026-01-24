@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import NextImage from 'next/image';
+import NexusLogo from '@/assets/Logo/Logo with no circle.svg';
 import { Search, ChevronDown, Image, Save, LayoutGrid, ChevronRight } from 'lucide-react';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -21,15 +23,12 @@ export function Navbar({ showSearch = true, onSearchClick, children }: NavbarPro
     <header className="flex h-16 items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-6">
       <div className="flex items-center gap-3">
         <Link href="/" className="flex items-center gap-3">
-          <div className="relative">
-            <div className="absolute -inset-1 rounded-full border-[0.2px] border-white" />
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900">
-              <span className="text-xl font-bold text-white">N</span>
-            </div>
+          <div className="relative h-9 w-9">
+            <NextImage src={NexusLogo} alt="Nexus Logo" fill className="object-contain" />
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-white">Nexus</h1>
-            <p className="text-[10px] text-zinc-500">Knowledge Graph Explorer</p>
+            <h1 className="text-lg font-bold tracking-tight text-white font-light font-ka1">Nexus</h1>
+            <p className="text-[10px] text-zinc-400">Knowledge Graph Explorer</p>
           </div>
         </Link>
       </div>
@@ -111,13 +110,10 @@ export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, childr
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex items-center gap-2 rounded-lg py-1.5 pl-1 pr-2 hover:bg-zinc-800/50 transition-colors"
+            className="flex items-center gap-2 rounded-lg py-1.5 pl-1 pr-2 transition-colors cursor-pointer"
           >
-            <div className="relative">
-              <div className="absolute -inset-0.5 rounded-full border-[0.2px] border-white/20" />
-              <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900">
-                <span className="text-sm font-bold text-white">N</span>
-              </div>
+            <div className="relative h-8 w-8">
+              <NextImage src={NexusLogo} alt="Nexus Logo" fill className="object-contain" />
             </div>
             <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -133,7 +129,7 @@ export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, childr
                       <button
                         key={color}
                         onClick={() => handleColorSelect(color)}
-                        className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${isSelected
+                        className={`w-6 h-6 rounded-full transition-transform cursor-pointer hover:scale-110 ${isSelected
                           ? 'ring-2 ring-white ring-offset-1 ring-offset-zinc-900'
                           : 'border border-zinc-700'
                           }`}
@@ -151,7 +147,7 @@ export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, childr
               <div className="relative">
                 <button
                   onClick={() => setIsSaveAsMenuOpen(!isSaveAsMenuOpen)}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors text-left"
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5">
                     <Save className="w-4 h-4" />
@@ -164,7 +160,7 @@ export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, childr
                   <div className="absolute left-full top-0 ml-2 w-48 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl p-2 z-50">
                     <p className="px-2 py-1 text-xs font-medium text-zinc-500 mb-1">Export as</p>
                     <button
-                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
                       onClick={() => {
                         setIsSaveAsMenuOpen(false);
                         setIsMenuOpen(false);
@@ -174,7 +170,7 @@ export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, childr
                       <span>PNG</span>
                     </button>
                     <button
-                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
                       onClick={() => {
                         setIsSaveAsMenuOpen(false);
                         setIsMenuOpen(false);
@@ -184,7 +180,7 @@ export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, childr
                       <span>JPG</span>
                     </button>
                     <button
-                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors cursor-pointer"
                       onClick={() => {
                         setIsSaveAsMenuOpen(false);
                         setIsMenuOpen(false);
@@ -250,7 +246,7 @@ export function AuthNav({ onLogin, onSignup }: AuthNavProps) {
       </button>
       <button
         onClick={onSignup}
-        className="rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#265fbd]"
+        className="rounded-lg bg-[#355ea1] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#265fbd]"
       >
         Get Started
       </button>

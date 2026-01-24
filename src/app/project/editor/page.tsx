@@ -89,7 +89,7 @@ export default function EditorPage() {
                 };
                 setCurrentProject(mergedProject);
 
-                const GROUP_COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4', '#84CC16'];
+                const GROUP_COLORS = ['#8B5CF6', '#355ea1', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4', '#84CC16'];
 
                 const hashString = (str: string) => {
                     let hash = 0;
@@ -145,7 +145,7 @@ export default function EditorPage() {
         const groupId = typeof activeGroupId === 'number' ? activeGroupId : 0;
 
         const GROUP_COLORS: Record<number, string> = {
-            0: '#8B5CF6', 1: '#3B82F6', 2: '#10B981', 3: '#F59E0B',
+            0: '#8B5CF6', 1: '#355ea1', 2: '#10B981', 3: '#F59E0B',
             4: '#EF4444', 5: '#EC4899', 6: '#06B6D4', 7: '#84CC16',
         };
         const colors = Object.values(GROUP_COLORS);

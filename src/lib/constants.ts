@@ -1,8 +1,8 @@
-export const BRAND_COLOR = '#3B82F6';
+export const BRAND_COLOR = '#355ea1';
 
 export const GROUP_COLORS: Record<number, string> = {
   0: '#8B5CF6',
-  1: '#3B82F6',
+  1: '#355ea1',
   2: '#10B981',
   3: '#F59E0B',
   4: '#EF4444',
@@ -13,7 +13,7 @@ export const GROUP_COLORS: Record<number, string> = {
 
 export const NODE_COLORS = [
   '#8B5CF6',
-  '#3B82F6', 
+  '#355ea1', 
   '#10B981',
   '#F59E0B',
   '#EF4444',
@@ -23,7 +23,7 @@ export const NODE_COLORS = [
 ];
 
 export const COLOR_PALETTE = [
-  '#3B82F6',
+  '#355ea1',
   '#EF4444',
   '#10B981',
   '#F59E0B',

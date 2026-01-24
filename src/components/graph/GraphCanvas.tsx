@@ -391,7 +391,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
       if (isSelected) {
         ctx.beginPath();
         ctx.arc(x, y, nodeRadius + 5, 0, 2 * Math.PI);
-        ctx.strokeStyle = '#3B82F6';
+        ctx.strokeStyle = '#355ea1';
         ctx.lineWidth = 2 / globalScale;
         ctx.setLineDash([4 / globalScale, 2 / globalScale]);
         ctx.stroke();
@@ -447,7 +447,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
 
   const linkColor = useCallback((link: unknown) => {
     const l = link as { color?: string; source?: any; target?: any };
-    const baseColor = l.color || '#3B82F6';
+    const baseColor = l.color || '#355ea1';
 
     const isHovered = hoveredLink &&
       ((hoveredLink.source === l.source || hoveredLink.source?.id === l.source?.id) &&
@@ -942,7 +942,38 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
   }, [graphTransform]);
 
   const handleContainerMouseMove = useCallback((e: React.MouseEvent) => {
-    // Manual Group Drag Logic
+    // 1. Middle Mouse Pan (High Priority)
+    if (isMiddleMousePanning && middleMouseStartRef.current && graphRef.current) {
+      const dx = e.clientX - middleMouseStartRef.current.x;
+      const dy = e.clientY - middleMouseStartRef.current.y;
+      graphRef.current.centerAt(
+        graphTransform.x - dx,
+        graphTransform.y - dy,
+        0
+      );
+      middleMouseStartRef.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
+    // 2. Resizing Logic
+    if (isResizing && activeResizeHandleRef.current && resizeStartBoundsRef.current && resizeDragStartRef.current && originalShapeRef.current) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const screenX = e.clientX - rect.left;
+      const screenY = e.clientY - rect.top;
+      const worldPoint = screenToWorld(screenX, screenY);
+
+      let transformedShape;
+      if (activeResizeHandleRef.current === 'rotate') {
+        transformedShape = rotateShape(originalShapeRef.current, worldPoint, resizeDragStartRef.current, resizeStartBoundsRef.current);
+      } else {
+        transformedShape = resizeShape(originalShapeRef.current, activeResizeHandleRef.current, worldPoint, resizeDragStartRef.current, resizeStartBoundsRef.current);
+      }
+      shapesRef.current = shapesRef.current.map(s => s.id === transformedShape.id ? transformedShape : s);
+      setResizeUpdateCounter(c => c + 1);
+      return;
+    }
+
+    // 3. Manual Group Drag Logic (Nodes)
     if (dragGroupRef.current?.active) {
       const rect = e.currentTarget.getBoundingClientRect();
       const screenX = e.clientX - rect.left;
@@ -951,8 +982,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
 
       const dx = worldPoint.x - dragGroupRef.current.startMouse.x;
       const dy = worldPoint.y - dragGroupRef.current.startMouse.y;
-
-
 
       // Update Nodes
       const initialNodes = dragGroupRef.current.initialNodes;
@@ -985,7 +1014,38 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
       return;
     }
 
-    // Marquee selection update
+    // 4. Shape Selection Drag (Select Tool)
+    if (isDraggingSelection && dragStartWorld && selectedShapeIds.size > 0) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const worldPoint = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+      const dx = worldPoint.x - dragStartWorld.x;
+      const dy = worldPoint.y - dragStartWorld.y;
+
+      if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+        const updatedShapes = shapes.map(s => {
+          if (selectedShapeIds.has(s.id)) {
+            return { ...s, points: s.points.map(p => ({ x: p.x + dx, y: p.y + dy })) };
+          }
+          return s;
+        });
+        setShapes(updatedShapes);
+
+        if (selectedNodeIds.size > 0) {
+          const currentGraphNodes = graphData.nodes as Array<{ id: string | number; x?: number; y?: number; fx?: number; fy?: number }>;
+          currentGraphNodes.forEach(n => {
+            if (selectedNodeIds.has(String(n.id))) {
+              const newX = (n.fx ?? n.x ?? 0) + dx;
+              const newY = (n.fy ?? n.y ?? 0) + dy;
+              n.fx = newX; n.fy = newY; n.x = newX; n.y = newY;
+            }
+          });
+        }
+        setDragStartWorld(worldPoint);
+      }
+      return;
+    }
+
+    // 5. Marquee selection update
     if (isMarqueeSelecting) {
       const rect = e.currentTarget.getBoundingClientRect();
       const screenX = e.clientX - rect.left;
@@ -1002,21 +1062,33 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
 
     if (graphSettings.activeTool !== 'select') return;
 
+    // Hover Logic
     const rect = e.currentTarget.getBoundingClientRect();
-
-    // If dragging a node, do not interfere with overlay
-    if (dragNodePrevRef.current) return;
-
     const screenX = e.clientX - rect.left;
     const screenY = e.clientY - rect.top;
     const worldPoint = screenToWorld(screenX, screenY);
     const scale = graphTransform.k || 1;
 
+    // If dragging a node, do not interfere
+    if (dragNodePrevRef.current) return;
+
+    // Hover Resize Handle
+    if (selectedShapeIds.size === 1 && !isDraggingSelection) {
+      const selectedShape = filteredShapes.find(s => selectedShapeIds.has(s.id));
+      if (selectedShape) {
+        const bounds = getShapeBounds(selectedShape, scale);
+        if (bounds) {
+          const handle = getHandleAtPoint(worldPoint, bounds, scale);
+          setHoveredResizeHandle(handle);
+        } else { setHoveredResizeHandle(null); }
+      }
+    } else { setHoveredResizeHandle(null); }
+
     const isNear = filteredShapes.some(s => isPointNearShape(worldPoint, s, scale, 10));
     if (isNear !== isHoveringShape) {
       setIsHoveringShape(isNear);
     }
-  }, [graphSettings.activeTool, graphTransform, filteredShapes, screenToWorld, isHoveringShape, isMarqueeSelecting]);
+  }, [graphSettings.activeTool, graphTransform, filteredShapes, screenToWorld, isHoveringShape, isMarqueeSelecting, isMiddleMousePanning, isResizing, isDraggingSelection, dragStartWorld, selectedShapeIds, shapes, setShapes, selectedNodeIds, graphData]);
 
 
 
@@ -1134,6 +1206,38 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
   }, [screenToWorld, graphTransform, graphSettings.activeTool, shapes, nodes, setActiveNode]);
 
   const handleContainerMouseUpCapture = useCallback((e: React.MouseEvent) => {
+    // 1. Pan End
+    if (isMiddleMousePanning) {
+      setIsMiddleMousePanning(false);
+      middleMouseStartRef.current = null;
+    }
+
+    // 2. Resize End
+    if (isResizing && resizingShapeIdRef.current) {
+      const finalShapes = shapesRef.current;
+      setShapes(finalShapes);
+      const resizedShape = finalShapes.find(s => s.id === resizingShapeIdRef.current);
+      if (resizedShape) {
+        api.drawings.update(resizedShape.id, { points: JSON.stringify(resizedShape.points) })
+          .catch(err => console.error('Failed to update drawing:', err));
+      }
+      setIsResizing(false);
+      activeResizeHandleRef.current = null;
+      resizeStartBoundsRef.current = null;
+      resizeDragStartRef.current = null;
+      resizingShapeIdRef.current = null;
+    }
+
+    // 3. Shape Drag End (Selection)
+    if (isDraggingSelection && selectedShapeIds.size > 0) {
+      filteredShapes.filter(s => selectedShapeIds.has(s.id)).forEach(s => {
+        api.drawings.update(s.id, { points: JSON.stringify(s.points) })
+          .catch(err => console.error('Failed to update drawing:', err));
+      });
+      setIsDraggingSelection(false);
+      setDragStartWorld(null);
+    }
+
     // Check global drag distance to prevent click triggers
     if (dragStartPosRef.current) {
       const dx = e.clientX - dragStartPosRef.current.x;
@@ -1761,212 +1865,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
             <div
               className="absolute inset-0"
               style={{
-                pointerEvents: 'auto',
+                pointerEvents: 'none',
                 cursor: getToolCursor()
               }}
 
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const screenX = e.clientX - rect.left;
-                const screenY = e.clientY - rect.top;
-                const worldPoint = screenToWorld(screenX, screenY);
-                const scale = graphTransform.k || 1;
-
-                if (isMiddleMousePanning && middleMouseStartRef.current && graphRef.current) {
-                  const dx = e.clientX - middleMouseStartRef.current.x;
-                  const dy = e.clientY - middleMouseStartRef.current.y;
-
-                  graphRef.current.centerAt(
-                    graphTransform.x - dx,
-                    graphTransform.y - dy,
-                    0
-                  );
-
-                  middleMouseStartRef.current = { x: e.clientX, y: e.clientY };
-                  return;
-                }
-
-                if (isMarqueeSelecting) {
-                  setMarqueeEnd(worldPoint);
-                  if (graphRef.current) {
-                    const z = graphRef.current.zoom();
-                    graphRef.current.zoom(z * 1.00001, 0);
-                    graphRef.current.zoom(z, 0);
-                  }
-                  return;
-                }
-
-                if (isResizing && activeResizeHandleRef.current && resizeStartBoundsRef.current && resizeDragStartRef.current && originalShapeRef.current) {
-                  let transformedShape;
-
-                  if (activeResizeHandleRef.current === 'rotate') {
-                    transformedShape = rotateShape(
-                      originalShapeRef.current,
-                      worldPoint,
-                      resizeDragStartRef.current,
-                      resizeStartBoundsRef.current
-                    );
-                  } else {
-                    transformedShape = resizeShape(
-                      originalShapeRef.current,
-                      activeResizeHandleRef.current,
-                      worldPoint,
-                      resizeDragStartRef.current,
-                      resizeStartBoundsRef.current
-                    );
-                  }
-
-                  shapesRef.current = shapesRef.current.map(s => s.id === transformedShape.id ? transformedShape : s);
-                  setResizeUpdateCounter(c => c + 1);
-
-                  if (graphRef.current) {
-                    const z = graphRef.current.zoom();
-                    graphRef.current.zoom(z * 1.00001, 0);
-                    graphRef.current.zoom(z, 0);
-                  }
-                  return;
-                }
-
-                if (selectedShapeIds.size === 1 && !isDraggingSelection) {
-                  const selectedShape = filteredShapes.find(s => selectedShapeIds.has(s.id));
-                  if (selectedShape) {
-                    const bounds = getShapeBounds(selectedShape, scale);
-                    if (bounds) {
-                      const handle = getHandleAtPoint(worldPoint, bounds, scale);
-                      setHoveredResizeHandle(handle);
-                    } else {
-                      setHoveredResizeHandle(null);
-                    }
-                  }
-                } else {
-                  setHoveredResizeHandle(null);
-                }
-
-                if (!isDraggingSelection || !dragStartWorld || selectedShapeIds.size === 0) return;
-
-                const dx = worldPoint.x - dragStartWorld.x;
-                const dy = worldPoint.y - dragStartWorld.y;
-
-                if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-                  const updatedShapes = shapes.map(s => {
-                    if (selectedShapeIds.has(s.id)) {
-                      return {
-                        ...s,
-                        points: s.points.map(p => ({ x: p.x + dx, y: p.y + dy }))
-                      };
-                    }
-                    return s;
-                  });
-                  setShapes(updatedShapes);
-
-                  if (selectedNodeIds.size > 0) {
-                    const currentGraphNodes = graphData.nodes as Array<{ id: string | number; x?: number; y?: number; fx?: number; fy?: number }>;
-                    currentGraphNodes.forEach(n => {
-                      if (selectedNodeIds.has(String(n.id))) {
-                        const newX = (n.fx ?? n.x ?? 0) + dx;
-                        const newY = (n.fy ?? n.y ?? 0) + dy;
-                        n.fx = newX;
-                        n.fy = newY;
-                        n.x = newX;
-                        n.y = newY;
-                      }
-                    });
-                  }
-
-                  setDragStartWorld(worldPoint);
-                }
-              }}
-              onMouseUp={() => {
-                if (isMiddleMousePanning) {
-                  setIsMiddleMousePanning(false);
-                  middleMouseStartRef.current = null;
-                  return;
-                }
-
-                if (isResizing && resizingShapeIdRef.current) {
-                  const finalShapes = shapesRef.current;
-                  setShapes(finalShapes);
-
-                  const resizedShape = finalShapes.find(s => s.id === resizingShapeIdRef.current);
-                  if (resizedShape) {
-                    api.drawings.update(resizedShape.id, { points: JSON.stringify(resizedShape.points) })
-                      .catch(err => console.error('Failed to update drawing:', err));
-                  }
-
-                  setIsResizing(false);
-                  activeResizeHandleRef.current = null;
-                  resizeStartBoundsRef.current = null;
-                  resizeDragStartRef.current = null;
-                  resizingShapeIdRef.current = null;
-                  originalShapeRef.current = null;
-                  return;
-                }
-
-                if (isMarqueeSelecting && marqueeStart && marqueeEnd) {
-                  const minX = Math.min(marqueeStart.x, marqueeEnd.x);
-                  const maxX = Math.max(marqueeStart.x, marqueeEnd.x);
-                  const minY = Math.min(marqueeStart.y, marqueeEnd.y);
-                  const maxY = Math.max(marqueeStart.y, marqueeEnd.y);
-
-                  const selectedShapeIdsNew = new Set<string>();
-                  filteredShapes.forEach(s => {
-                    if (isShapeInMarquee(s, marqueeStart, marqueeEnd)) {
-                      selectedShapeIdsNew.add(s.id);
-                    }
-                  });
-                  setSelectedShapeIds(prev => {
-                    const next = new Set(prev);
-                    selectedShapeIdsNew.forEach(id => next.add(id));
-                    return next;
-                  });
-
-                  const selectedNodeIdsNew = new Set<string>();
-                  const currentGraphNodes = graphData.nodes as Array<{ id: string | number; x?: number; y?: number }>;
-                  currentGraphNodes.forEach(n => {
-                    const x = n.x || 0;
-                    const y = n.y || 0;
-                    if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
-                      selectedNodeIdsNew.add(String(n.id));
-                    }
-                  });
-                  setSelectedNodeIds(prev => {
-                    const next = new Set(prev);
-                    selectedNodeIdsNew.forEach(id => next.add(id));
-                    return next;
-                  });
-
-                  setIsMarqueeSelecting(false);
-                  setMarqueeStart(null);
-                  setMarqueeEnd(null);
-                  if (graphRef.current) {
-                    const z = graphRef.current.zoom();
-                    graphRef.current.zoom(z * 1.00001, 0);
-                    graphRef.current.zoom(z, 0);
-                  }
-                  return;
-                }
-
-                if (isDraggingSelection && selectedShapeIds.size > 0) {
-                  filteredShapes.filter(s => selectedShapeIds.has(s.id)).forEach(s => {
-                    api.drawings.update(s.id, { points: JSON.stringify(s.points) })
-                      .catch(err => console.error('Failed to update drawing:', err));
-                  });
-                }
-                setIsDraggingSelection(false);
-                setDragStartWorld(null);
-                if (graphRef.current) {
-                  const z = graphRef.current.zoom();
-                  graphRef.current.zoom(z * 1.00001, 0);
-                  graphRef.current.zoom(z, 0);
-                }
-              }}
-              onMouseLeave={() => {
-                setIsDraggingSelection(false);
-                setDragStartWorld(null);
-                setIsMarqueeSelecting(false);
-                setMarqueeStart(null);
-                setMarqueeEnd(null);
-              }}
             />
           )}
           {isTextTool && (

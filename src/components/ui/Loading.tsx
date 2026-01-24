@@ -2,6 +2,8 @@
 
 import { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
+import NextImage from 'next/image';
+import NexusLogo from '@/assets/Logo/Logo with no circle.svg';
 
 interface LoadingScreenProps {
   message?: string;
@@ -11,15 +13,13 @@ export function LoadingScreen({ message }: LoadingScreenProps) {
   return (
     <div className="flex h-screen items-center justify-center bg-zinc-950">
       <div className="flex flex-col items-center gap-4">
-        <div className="relative">
-          <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-[#3B82F6]/50 to-indigo-600/50 blur-lg animate-pulse" />
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#3B82F6] to-indigo-600">
-            <span className="text-2xl font-bold text-white">N</span>
-          </div>
+        <div className="relative h-16 w-16">
+
+          <NextImage src={NexusLogo} alt="Loading..." fill className="object-contain" priority />
         </div>
         {message && <p className="text-sm text-zinc-400">{message}</p>}
         <div className="h-1 w-24 overflow-hidden rounded-full bg-zinc-800">
-          <div className="h-full w-1/2 animate-pulse rounded-full bg-[#265fbd]" />
+          <div className="h-full w-1/2 animate-pulse rounded-full bg-white" />
         </div>
       </div>
     </div>
@@ -38,7 +38,7 @@ export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerPr
     lg: 'h-8 w-8',
   };
 
-  return <Loader2 className={`animate-spin text-[#3B82F6] ${sizeClasses[size]} ${className}`} />;
+  return <Loader2 className={`animate-spin text-[#355ea1] ${sizeClasses[size]} ${className}`} />;
 }
 
 interface LoadingOverlayProps {

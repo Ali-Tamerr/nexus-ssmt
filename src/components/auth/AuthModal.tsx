@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { X, Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { api } from '@/lib/api';
+import Image from 'next/image';
+import NexusLogo from '@/assets/Logo/Logo with no circle.svg';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -115,8 +117,8 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
         </button>
 
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#3B82F6] to-indigo-600">
-            <span className="text-2xl font-bold text-white">N</span>
+          <div className="mx-auto mb-4 relative h-14 w-14">
+            <Image src={NexusLogo} alt="Nexus Logo" fill className="object-contain" />
           </div>
           <h2 className="text-2xl font-bold text-white">
             {mode === 'login' ? 'Welcome back' : 'Create account'}
@@ -196,7 +198,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
           <button
             type="submit"
             disabled={isLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#3B82F6] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#265fbd] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#355ea1] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#265fbd] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading ? (
               <>
@@ -214,7 +216,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
             {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
             <button
               onClick={switchMode}
-              className="font-medium text-violet-400 hover:text-violet-300"
+              className="font-medium text-[#355ea1] hover:text-violet-300"
             >
               {mode === 'login' ? 'Sign up' : 'Sign in'}
             </button>

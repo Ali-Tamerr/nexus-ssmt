@@ -37,7 +37,7 @@ export function ShareModal({ isOpen, onClose, shareUrl }: ShareModalProps) {
     const updateMaxSize = () => {
       setMaxQrSize(getMaxQrSize());
     };
-    
+
     updateMaxSize();
     window.addEventListener('resize', updateMaxSize);
     return () => window.removeEventListener('resize', updateMaxSize);
@@ -92,11 +92,10 @@ export function ShareModal({ isOpen, onClose, shareUrl }: ShareModalProps) {
 
       {/* Modal */}
       <div
-        className={`relative z-10 rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl transition-all duration-300 ${
-          isFullscreen
-            ? 'w-auto h-auto p-8'
-            : 'w-full max-w-md p-6 mx-4'
-        }`}
+        className={`relative z-10 rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl transition-all duration-300 ${isFullscreen
+          ? 'w-auto h-auto p-8'
+          : 'w-full max-w-md p-6 mx-4'
+          }`}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -116,22 +115,20 @@ export function ShareModal({ isOpen, onClose, shareUrl }: ShareModalProps) {
               setActiveTab('link');
               setIsFullscreen(false);
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'link'
-                ? 'bg-[#3B82F6] text-white'
-                : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'link'
+              ? 'bg-[#355ea1] text-white'
+              : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
+              }`}
           >
             <Link2 className="h-4 w-4" />
             <span>Link</span>
           </button>
           <button
             onClick={() => setActiveTab('qr')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'qr'
-                ? 'bg-[#3B82F6] text-white'
-                : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'qr'
+              ? 'bg-[#355ea1] text-white'
+              : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
+              }`}
           >
             <QrCode className="h-4 w-4" />
             <span>QR Code</span>
@@ -150,11 +147,10 @@ export function ShareModal({ isOpen, onClose, shareUrl }: ShareModalProps) {
               </div>
               <button
                 onClick={handleCopy}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  copied
-                    ? 'bg-green-600 text-white'
-                    : 'bg-[#3B82F6] text-white hover:bg-[#2563EB]'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${copied
+                  ? 'bg-green-600 text-white'
+                  : 'bg-[#355ea1] text-white hover:bg-[#2563EB]'
+                  }`}
               >
                 {copied ? (
                   <>
@@ -230,11 +226,11 @@ export function ShareModal({ isOpen, onClose, shareUrl }: ShareModalProps) {
                       setIsFullscreen(false);
                     }
                   }}
-                  className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-[#3B82F6] 
+                  className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-[#355ea1] 
                     [&::-webkit-slider-thumb]:appearance-none 
                     [&::-webkit-slider-thumb]:w-4 
                     [&::-webkit-slider-thumb]:h-4 
-                    [&::-webkit-slider-thumb]:bg-[#3B82F6] 
+                    [&::-webkit-slider-thumb]:bg-[#355ea1] 
                     [&::-webkit-slider-thumb]:rounded-full 
                     [&::-webkit-slider-thumb]:cursor-pointer
                     [&::-webkit-slider-thumb]:transition-all
@@ -242,7 +238,7 @@ export function ShareModal({ isOpen, onClose, shareUrl }: ShareModalProps) {
                     [&::-webkit-slider-thumb]:hover:scale-110
                     [&::-moz-range-thumb]:w-4 
                     [&::-moz-range-thumb]:h-4 
-                    [&::-moz-range-thumb]:bg-[#3B82F6] 
+                    [&::-moz-range-thumb]:bg-[#355ea1] 
                     [&::-moz-range-thumb]:rounded-full 
                     [&::-moz-range-thumb]:cursor-pointer
                     [&::-moz-range-thumb]:border-0"
@@ -258,11 +254,10 @@ export function ShareModal({ isOpen, onClose, shareUrl }: ShareModalProps) {
             <div className="pt-2 border-t border-zinc-800">
               <button
                 onClick={handleCopy}
-                className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  copied
-                    ? 'bg-green-600 text-white'
-                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white'
-                }`}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${copied
+                  ? 'bg-green-600 text-white'
+                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white'
+                  }`}
               >
                 {copied ? (
                   <>

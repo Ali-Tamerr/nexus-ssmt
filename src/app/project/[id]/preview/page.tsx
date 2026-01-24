@@ -265,7 +265,7 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
                         ctx.arc(node.x, node.y, 15, 0, 2 * Math.PI, false);
                         ctx.fill();
                     }}
-                    linkColor={(link: any) => (link.color || '#3B82F6') + '80'}
+                    linkColor={(link: any) => (link.color || '#355ea1') + '80'}
                     linkWidth={1}
                     linkCurvature={0.1}
                     linkDirectionalArrowLength={6}

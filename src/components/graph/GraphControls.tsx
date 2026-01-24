@@ -53,7 +53,7 @@ export function GraphControls({ settings, onSettingsChange }: GraphControlsProps
                 key={tool.id}
                 onClick={() => setActiveTool(tool.id)}
                 className={`p-2 rounded-lg transition-all ${isActive
-                  ? 'bg-[#3B82F6] text-white'
+                  ? 'bg-[#355ea1] text-white'
                   : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
                   }`}
                 title={tool.label}
@@ -160,7 +160,7 @@ function ShareControl({ projectId }: ShareControlProps) {
       <button
         onClick={() => setIsModalOpen(true)}
         disabled={!projectId}
-        className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all bg-[#3B82F6] text-white hover:bg-[#2563EB] ${!projectId ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all bg-[#355ea1] text-white hover:bg-[#2563EB] ${!projectId ? 'opacity-50 cursor-not-allowed' : ''}`}
         title="Share project"
       >
         <Share2 className="h-3.5 w-3.5" />

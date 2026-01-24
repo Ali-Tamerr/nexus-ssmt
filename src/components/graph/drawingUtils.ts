@@ -277,7 +277,7 @@ export function drawMarquee(
     globalScale: number
 ) {
     ctx.save();
-    ctx.strokeStyle = '#3B82F6';
+    ctx.strokeStyle = '#355ea1';
     ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
     ctx.lineWidth = 1 / globalScale;
     ctx.setLineDash([5 / globalScale, 3 / globalScale]);

@@ -38,7 +38,7 @@ export function NodeEditor() {
   const [newTagColor, setNewTagColor] = useState('#8B5CF6');
   const [selectedTargetNodeId, setSelectedTargetNodeId] = useState('');
   const [connectionDescription, setConnectionDescription] = useState('');
-  const [connectionColor, setConnectionColor] = useState('#3B82F6');
+  const [connectionColor, setConnectionColor] = useState('#355ea1');
   const [editingConnectionId, setEditingConnectionId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -50,19 +50,40 @@ export function NodeEditor() {
   const customColorPickerRef = useRef<HTMLDivElement>(null);
 
   const [showCustomColorPicker, setShowCustomColorPicker] = useState(false);
-  const [tempCustomColor, setTempCustomColor] = useState('#3B82F6');
+  const [tempCustomColor, setTempCustomColor] = useState('#355ea1');
+  const [showUnsavedPopup, setShowUnsavedPopup] = useState(false);
 
   // Track original color to revert on cancel
-  const [originalCustomColor, setOriginalCustomColor] = useState<string | undefined>(undefined);
+  const originalColorRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (activeNode) {
       setTitle(activeNode.title);
       setContent(activeNode.content || '');
       setCustomColor(activeNode.customColor);
-      setOriginalCustomColor(activeNode.customColor);
     }
   }, [activeNode]);
+
+  // Capture original color when node/selection changes
+  useEffect(() => {
+    if (activeNode?.id) {
+      originalColorRef.current = activeNode.customColor;
+    }
+  }, [activeNode?.id]);
+
+  // Revert changes on unmount/selection change if not saved
+  useEffect(() => {
+    const nodeId = activeNode?.id;
+    if (!nodeId) return;
+
+    return () => {
+      const currentNode = useGraphStore.getState().nodes.find(n => n.id === nodeId);
+      // If node exists and color is different from original, revert it
+      if (currentNode && currentNode.customColor !== originalColorRef.current) {
+        useGraphStore.getState().updateNode(nodeId, { customColor: originalColorRef.current });
+      }
+    };
+  }, [activeNode?.id]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -104,7 +125,7 @@ export function NodeEditor() {
       });
       updateNode(activeNode.id, { title, content, customColor });
       // Update original color so close doesn't revert the saved color
-      setOriginalCustomColor(customColor);
+      originalColorRef.current = customColor;
     } catch (err) {
       console.error('Failed to save node:', err);
       setError(err instanceof Error ? err.message : 'Failed to save');
@@ -130,10 +151,24 @@ export function NodeEditor() {
     }
   };
 
+  const isTitleDirty = activeNode ? title !== activeNode.title : false;
+  const isContentDirty = activeNode ? content !== (activeNode.content || '') : false;
+  const isColorDirty = activeNode ? activeNode.customColor !== originalColorRef.current : false;
+  const isDirty = (isTitleDirty || isContentDirty || isColorDirty);
+
+  const handleDiscardAndClose = () => {
+    if (activeNode && activeNode.customColor !== originalColorRef.current) {
+      useGraphStore.getState().updateNode(activeNode.id, { customColor: originalColorRef.current });
+    }
+    setActiveNode(null);
+    toggleEditor(false);
+    setShowUnsavedPopup(false);
+  };
+
   const handleClose = () => {
-    // Revert color if it was changed but not saved
-    if (activeNode && customColor !== originalCustomColor) {
-      updateNode(activeNode.id, { customColor: originalCustomColor });
+    if (isDirty) {
+      setShowUnsavedPopup(true);
+      return;
     }
     setActiveNode(null);
     toggleEditor(false);
@@ -230,7 +265,7 @@ export function NodeEditor() {
       addLink(newLink);
       setSelectedTargetNodeId('');
       setConnectionDescription('');
-      setConnectionColor('#3B82F6');
+      setConnectionColor('#355ea1');
       setShowConnectionMenu(false);
       setError(null);
     } catch (err) {
@@ -253,7 +288,7 @@ export function NodeEditor() {
     const connectedNodeId = link.sourceId === activeNode?.id ? link.targetId : link.sourceId;
     setSelectedTargetNodeId(connectedNodeId);
     setConnectionDescription(link.description || '');
-    setConnectionColor(link.color || '#3B82F6');
+    setConnectionColor(link.color || '#355ea1');
     setShowConnectionMenu(true);
   };
 
@@ -284,7 +319,7 @@ export function NodeEditor() {
 
       setSelectedTargetNodeId('');
       setConnectionDescription('');
-      setConnectionColor('#3B82F6');
+      setConnectionColor('#355ea1');
       setEditingConnectionId(null);
       setShowConnectionMenu(false);
       setError(null);
@@ -298,7 +333,7 @@ export function NodeEditor() {
     setEditingConnectionId(null);
     setSelectedTargetNodeId('');
     setConnectionDescription('');
-    setConnectionColor('#3B82F6');
+    setConnectionColor('#355ea1');
     setShowConnectionMenu(false);
   };
 
@@ -328,153 +363,154 @@ export function NodeEditor() {
   const availableNodes = nodes.filter(n => n.id !== activeNode.id && !connectedNodeIds.has(n.id));
 
   return (
-    <div className="fixed right-0 top-0 z-30 flex h-full w-96 flex-col border-l border-zinc-800 bg-zinc-900/95 backdrop-blur-sm">
-      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
-        <h2 className="text-sm font-semibold text-white">Edit Node</h2>
-        <button
-          onClick={handleClose}
-          className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {error && (
-        <div className="border-b border-red-500/20 bg-red-500/10 px-4 py-2 text-xs text-red-400">
-          {error}
+    <>
+      <div className="fixed right-0 top-0 z-50 flex h-full w-96 flex-col border-l border-zinc-800 bg-zinc-900/95">
+        <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+          <h2 className="text-sm font-semibold text-white">Edit Node</h2>
+          <button
+            onClick={handleClose}
+            className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      )}
 
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-300">Title</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Node title"
-              className="mt-2 w-full rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
-            />
+        {error && (
+          <div className="border-b border-red-500/20 bg-red-500/10 px-4 py-2 text-xs text-red-400">
+            {error}
           </div>
+        )}
 
-          <div>
-            <label className="block text-sm font-medium text-zinc-300">Content (optional)</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Add content..."
-              rows={6}
-              className="mt-2 w-full resize-none rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
-            />
-          </div>
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-300">Title</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Node title"
+                className="mt-2 w-full rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">Color</label>
-            <div className="flex flex-wrap gap-2 items-center">
-              {Object.entries(GROUP_COLORS).map(([groupNum, color]) => (
-                <button
-                  key={groupNum}
-                  onClick={() => {
-                    // Set as custom color instead of changing group
-                    setCustomColor(color);
-                    if (activeNode) {
-                      updateNode(activeNode.id, { customColor: color });
-                    }
-                  }}
-                  className={`h-8 w-8 rounded-lg transition-all ${customColor === color
-                    ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900'
-                    : 'hover:scale-110'
-                    }`}
-                  style={{ backgroundColor: color }}
-                  title={`Select color`}
-                />
-              ))}
+            <div>
+              <label className="block text-sm font-medium text-zinc-300">Content (optional)</label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Add content..."
+                rows={6}
+                className="mt-2 w-full resize-none rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
+              />
+            </div>
 
-              <div className="relative" ref={customColorPickerRef}>
-                <button
-                  onClick={() => {
-                    setTempCustomColor(customColor || '#3B82F6');
-                    setShowCustomColorPicker(!showCustomColorPicker);
-                  }}
-                  className={`h-8 w-8 rounded-lg border-2 transition-all flex items-center justify-center ${customColor && !Object.values(GROUP_COLORS).includes(customColor)
-                    ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900'
-                    : 'border-zinc-700 hover:border-zinc-500'
-                    }`}
-                  style={{
-                    backgroundColor: (customColor && !Object.values(GROUP_COLORS).includes(customColor)) ? customColor : 'transparent'
-                  }}
-                  title="Custom color"
-                >
-                  {(!customColor || Object.values(GROUP_COLORS).includes(customColor)) && <Plus className="h-4 w-4 text-zinc-400" />}
-                </button>
-
-                {showCustomColorPicker && (
-                  <div className="absolute left-0 top-10 z-50 rounded-lg border border-zinc-700 bg-zinc-800 p-3 shadow-xl w-48">
-                    <div className="space-y-2">
-                      <div>
-                        <label className="text-xs text-zinc-400 mb-1 block">Color Picker</label>
-                        <input
-                          type="color"
-                          value={tempCustomColor}
-                          onChange={(e) => setTempCustomColor(e.target.value)}
-                          className="w-full h-10 rounded cursor-pointer"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-zinc-400 mb-1 block">Hex Code</label>
-                        <input
-                          type="text"
-                          value={tempCustomColor}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (/^#[0-9A-Fa-f]{0,6}$/.test(value)) {
-                              setTempCustomColor(value);
-                            }
-                          }}
-                          placeholder="#3B82F6"
-                          className="w-full rounded-lg bg-zinc-700 px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none uppercase"
-                          maxLength={7}
-                        />
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (tempCustomColor.length === 7) {
-                            setCustomColor(tempCustomColor);
-                            if (activeNode) {
-                              updateNode(activeNode.id, { customColor: tempCustomColor });
-                            }
-                          }
-                          setShowCustomColorPicker(false);
-                        }}
-                        className="w-full mt-2 rounded-lg bg-[#3B82F6] py-1.5 text-xs font-medium text-white hover:bg-[#265fbd] transition-colors"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {customColor && (
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-2">Color</label>
+              <div className="flex flex-wrap gap-2 items-center">
+                {Object.entries(GROUP_COLORS).map(([groupNum, color]) => (
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCustomColor(undefined);
+                    key={groupNum}
+                    onClick={() => {
+                      // Set as custom color instead of changing group
+                      setCustomColor(color);
                       if (activeNode) {
-                        updateNode(activeNode.id, { customColor: undefined });
+                        updateNode(activeNode.id, { customColor: color });
                       }
                     }}
-                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-zinc-700 flex items-center justify-center text-white text-xs hover:bg-zinc-600"
-                    title="Reset to default group color"
+                    className={`h-8 w-8 rounded-lg transition-all ${customColor === color
+                      ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900'
+                      : 'hover:scale-110'
+                      }`}
+                    style={{ backgroundColor: color }}
+                    title={`Select color`}
+                  />
+                ))}
+
+                <div className="relative" ref={customColorPickerRef}>
+                  <button
+                    onClick={() => {
+                      setTempCustomColor(customColor || '#355ea1');
+                      setShowCustomColorPicker(!showCustomColorPicker);
+                    }}
+                    className={`h-8 w-8 rounded-lg border-2 transition-all flex items-center justify-center ${customColor && !Object.values(GROUP_COLORS).includes(customColor)
+                      ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900'
+                      : 'border-zinc-700 hover:border-zinc-500'
+                      }`}
+                    style={{
+                      backgroundColor: (customColor && !Object.values(GROUP_COLORS).includes(customColor)) ? customColor : 'transparent'
+                    }}
+                    title="Custom color"
                   >
-                    ×
+                    {(!customColor || Object.values(GROUP_COLORS).includes(customColor)) && <Plus className="h-4 w-4 text-zinc-400" />}
                   </button>
-                )}
+
+                  {showCustomColorPicker && (
+                    <div className="absolute left-0 top-10 z-50 rounded-lg border border-zinc-700 bg-zinc-800 p-3 shadow-xl w-48">
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-xs text-zinc-400 mb-1 block">Color Picker</label>
+                          <input
+                            type="color"
+                            value={tempCustomColor}
+                            onChange={(e) => setTempCustomColor(e.target.value)}
+                            className="w-full h-10 rounded cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-zinc-400 mb-1 block">Hex Code</label>
+                          <input
+                            type="text"
+                            value={tempCustomColor}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (/^#[0-9A-Fa-f]{0,6}$/.test(value)) {
+                                setTempCustomColor(value);
+                              }
+                            }}
+                            placeholder="#355ea1"
+                            className="w-full rounded-lg bg-zinc-700 px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none uppercase"
+                            maxLength={7}
+                          />
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (tempCustomColor.length === 7) {
+                              setCustomColor(tempCustomColor);
+                              if (activeNode) {
+                                updateNode(activeNode.id, { customColor: tempCustomColor });
+                              }
+                            }
+                            setShowCustomColorPicker(false);
+                          }}
+                          className="w-full mt-2 rounded-lg bg-[#355ea1] py-1.5 text-xs font-medium text-white hover:bg-[#265fbd] transition-colors"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {customColor && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCustomColor(undefined);
+                        if (activeNode) {
+                          updateNode(activeNode.id, { customColor: undefined });
+                        }
+                      }}
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-zinc-700 flex items-center justify-center text-white text-xs hover:bg-zinc-600"
+                      title="Reset to default group color"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* <div>
+            {/* <div>
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-zinc-300">Tags</label>
               <div className="relative" ref={tagMenuRef}>
@@ -498,7 +534,7 @@ export function NodeEditor() {
                       />
                     </div>
                     <div className="mb-3 flex gap-1">
-                      {['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899'].map((c) => (
+                      {['#8B5CF6', '#355ea1', '#10B981', '#F59E0B', '#EF4444', '#EC4899'].map((c) => (
                         <button
                           key={c}
                           onClick={() => setNewTagColor(c)}
@@ -510,7 +546,7 @@ export function NodeEditor() {
                     <button
                       onClick={handleAddTag}
                       disabled={!newTagName.trim()}
-                      className="w-full rounded-lg bg-[#3B82F6] py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#265fbd] disabled:opacity-50"
+                      className="w-full rounded-lg bg-[#355ea1] py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#265fbd] disabled:opacity-50"
                     >
                       Add Tag
                     </button>
@@ -543,231 +579,262 @@ export function NodeEditor() {
             </div>
           </div> */}
 
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-zinc-300">Attachments</label>
-              <div className="relative" ref={attachmentMenuRef}>
-                <button
-                  onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                  className="flex items-center gap-1 rounded-lg bg-zinc-800 px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-white"
-                >
-                  <Plus className="h-3 w-3" />
-                  Add
-                </button>
-
-                {showAttachmentMenu && (
-                  <div className="absolute right-0 top-8 z-10 w-72 rounded-lg border border-zinc-700 bg-zinc-800 p-3 shadow-xl">
-                    <div className="mb-2">
-                      <label className="text-xs text-zinc-400">URL</label>
-                      <input
-                        type="text"
-                        value={newAttachmentUrl}
-                        onChange={(e) => setNewAttachmentUrl(e.target.value)}
-                        placeholder="https://..."
-                        className="mt-1 w-full rounded-lg bg-zinc-700 px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none"
-                      />
-                    </div>
-                    <div className="mb-3">
-                      <label className="text-xs text-zinc-400">Name (optional)</label>
-                      <input
-                        type="text"
-                        value={newAttachmentName}
-                        onChange={(e) => setNewAttachmentName(e.target.value)}
-                        placeholder="Display name"
-                        className="mt-1 w-full rounded-lg bg-zinc-700 px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none"
-                      />
-                    </div>
-                    <button
-                      onClick={handleAddAttachment}
-                      disabled={!newAttachmentUrl.trim()}
-                      className="w-full rounded-lg bg-[#3B82F6] py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#265fbd] disabled:opacity-50"
-                    >
-                      Add Attachment
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-2 space-y-2">
-              {attachments.length === 0 ? (
-                <p className="text-xs text-zinc-500">No attachments yet</p>
-              ) : (
-                attachments.map((attachment) => (
-                  <div
-                    key={attachment.id}
-                    className="flex items-center justify-between rounded-lg bg-zinc-800 px-3 py-2"
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-zinc-300">Attachments</label>
+                <div className="relative" ref={attachmentMenuRef}>
+                  <button
+                    onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                    className="flex items-center gap-1 rounded-lg bg-zinc-800 px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-white"
                   >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <span className="text-zinc-400">{getAttachmentIcon(attachment.contentType)}</span>
-                      <span className="truncate text-sm text-white">{attachment.fileName}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <a
-                        href={attachment.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-white"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                      <button
-                        onClick={() => handleRemoveAttachment(attachment.id)}
-                        className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-red-400"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+                    <Plus className="h-3 w-3" />
+                    Add
+                  </button>
 
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-zinc-300">Connections</label>
-              <div className="relative" ref={connectionMenuRef}>
-                <button
-                  onClick={() => setShowConnectionMenu(!showConnectionMenu)}
-                  className="flex items-center gap-1 rounded-lg bg-zinc-800 px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-white"
-                >
-                  <Plus className="h-3 w-3" />
-                  Add
-                </button>
-
-                {showConnectionMenu && (
-                  <div className="absolute right-0 top-8 z-10 w-72 rounded-lg border border-zinc-700 bg-zinc-800 p-3 shadow-xl">
-                    <div className="mb-2">
-                      <label className="text-xs text-zinc-400">Connect to Node</label>
-                      <select
-                        value={selectedTargetNodeId}
-                        onChange={(e) => setSelectedTargetNodeId(e.target.value)}
-                        disabled={!!editingConnectionId}
-                        className="mt-1 w-full rounded-lg bg-zinc-700 px-3 py-1.5 text-sm text-white outline-none disabled:opacity-50"
-                      >
-                        <option value="">Select a node...</option>
-                        {availableNodes.map(n => (
-                          <option key={n.id} value={n.id}>{n.title}</option>
-                        ))}
-                        {editingConnectionId && (
-                          <option key={selectedTargetNodeId} value={selectedTargetNodeId}>
-                            {nodes.find(n => n.id === selectedTargetNodeId)?.title}
-                          </option>
-                        )}
-                      </select>
-                    </div>
-                    <div className="mb-2">
-                      <ColorPicker
-                        selectedColor={connectionColor}
-                        onChange={setConnectionColor}
-                        label="Color"
-                      />
-                    </div>
-                    <div className="mb-3">
-                      <label className="text-xs text-zinc-400">Description (optional)</label>
-                      <input
-                        type="text"
-                        value={connectionDescription}
-                        onChange={(e) => setConnectionDescription(e.target.value)}
-                        placeholder="Describe this connection..."
-                        className="mt-1 w-full rounded-lg bg-zinc-700 px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none"
-                      />
-                    </div>
-                    {editingConnectionId ? (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleCancelEdit}
-                          className="flex-1 rounded-lg bg-zinc-700 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-600"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleUpdateConnection}
-                          className="flex-1 rounded-lg bg-[#3B82F6] py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#265fbd]"
-                        >
-                          Update
-                        </button>
+                  {showAttachmentMenu && (
+                    <div className="absolute right-0 top-8 z-10 w-72 rounded-lg border border-zinc-700 bg-zinc-800 p-3 shadow-xl">
+                      <div className="mb-2">
+                        <label className="text-xs text-zinc-400">URL</label>
+                        <input
+                          type="text"
+                          value={newAttachmentUrl}
+                          onChange={(e) => setNewAttachmentUrl(e.target.value)}
+                          placeholder="https://..."
+                          className="mt-1 w-full rounded-lg bg-zinc-700 px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none"
+                        />
                       </div>
-                    ) : (
+                      <div className="mb-3">
+                        <label className="text-xs text-zinc-400">Name (optional)</label>
+                        <input
+                          type="text"
+                          value={newAttachmentName}
+                          onChange={(e) => setNewAttachmentName(e.target.value)}
+                          placeholder="Display name"
+                          className="mt-1 w-full rounded-lg bg-zinc-700 px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none"
+                        />
+                      </div>
                       <button
-                        onClick={handleAddConnection}
-                        disabled={!selectedTargetNodeId}
-                        className="w-full rounded-lg bg-[#3B82F6] py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#265fbd] disabled:opacity-50"
+                        onClick={handleAddAttachment}
+                        disabled={!newAttachmentUrl.trim()}
+                        className="w-full rounded-lg bg-[#355ea1] py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#265fbd] disabled:opacity-50"
                       >
-                        Add Connection
+                        Add Attachment
                       </button>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="mt-2 space-y-2">
-              {nodeConnections.length === 0 ? (
-                <p className="text-xs text-zinc-500">No connections yet</p>
-              ) : (
-                nodeConnections.map((link) => {
-                  const isSource = link.sourceId === activeNode.id;
-                  const connectedNodeId = isSource ? link.targetId : link.sourceId;
-                  const connectedNode = nodes.find(n => n.id === connectedNodeId);
-                  return (
+              <div className="mt-2 space-y-2">
+                {attachments.length === 0 ? (
+                  <p className="text-xs text-zinc-500">No attachments yet</p>
+                ) : (
+                  attachments.map((attachment) => (
                     <div
-                      key={link.id}
+                      key={attachment.id}
                       className="flex items-center justify-between rounded-lg bg-zinc-800 px-3 py-2"
                     >
                       <div className="flex items-center gap-2 overflow-hidden">
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: link.color || '#3B82F6' }}
-                        />
-                        <span className="text-xs text-zinc-400">{isSource ? 'to' : 'from'}</span>
-                        <span className="truncate text-sm text-white">{connectedNode?.title || 'Unknown'}</span>
-                        {link.description && (
-                          <span className="truncate text-xs text-zinc-500">({link.description})</span>
-                        )}
+                        <span className="text-zinc-400">{getAttachmentIcon(attachment.contentType)}</span>
+                        <span className="truncate text-sm text-white">{attachment.fileName}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleEditConnection(link)}
-                          className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-blue-400"
+                        <a
+                          href={attachment.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-white"
                         >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
                         <button
-                          onClick={() => handleRemoveConnection(link.id)}
+                          onClick={() => handleRemoveAttachment(attachment.id)}
                           className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-red-400"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
-                  );
-                })
-              )}
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-zinc-300">Connections</label>
+                <div className="relative" ref={connectionMenuRef}>
+                  <button
+                    onClick={() => setShowConnectionMenu(!showConnectionMenu)}
+                    className="flex items-center gap-1 rounded-lg bg-zinc-800 px-2 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-white"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add
+                  </button>
+
+                  {showConnectionMenu && (
+                    <div className="absolute right-0 top-8 z-10 w-72 rounded-lg border border-zinc-700 bg-zinc-800 p-3 shadow-xl">
+                      <div className="mb-2">
+                        <label className="text-xs text-zinc-400">Connect to Node</label>
+                        <select
+                          value={selectedTargetNodeId}
+                          onChange={(e) => setSelectedTargetNodeId(e.target.value)}
+                          disabled={!!editingConnectionId}
+                          className="mt-1 w-full rounded-lg bg-zinc-700 px-3 py-1.5 text-sm text-white outline-none disabled:opacity-50"
+                        >
+                          <option value="">Select a node...</option>
+                          {availableNodes.map(n => (
+                            <option key={n.id} value={n.id}>{n.title}</option>
+                          ))}
+                          {editingConnectionId && (
+                            <option key={selectedTargetNodeId} value={selectedTargetNodeId}>
+                              {nodes.find(n => n.id === selectedTargetNodeId)?.title}
+                            </option>
+                          )}
+                        </select>
+                      </div>
+                      <div className="mb-2">
+                        <ColorPicker
+                          selectedColor={connectionColor}
+                          onChange={setConnectionColor}
+                          label="Color"
+                        />
+                      </div>
+                      <div className="mb-3">
+                        <label className="text-xs text-zinc-400">Description (optional)</label>
+                        <input
+                          type="text"
+                          value={connectionDescription}
+                          onChange={(e) => setConnectionDescription(e.target.value)}
+                          placeholder="Describe this connection..."
+                          className="mt-1 w-full rounded-lg bg-zinc-700 px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none"
+                        />
+                      </div>
+                      {editingConnectionId ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleCancelEdit}
+                            className="flex-1 rounded-lg bg-zinc-700 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-600"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleUpdateConnection}
+                            className="flex-1 rounded-lg bg-[#355ea1] py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#265fbd]"
+                          >
+                            Update
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handleAddConnection}
+                          disabled={!selectedTargetNodeId}
+                          className="w-full rounded-lg bg-[#355ea1] py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#265fbd] disabled:opacity-50"
+                        >
+                          Add Connection
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-2 space-y-2">
+                {nodeConnections.length === 0 ? (
+                  <p className="text-xs text-zinc-500">No connections yet</p>
+                ) : (
+                  nodeConnections.map((link) => {
+                    const isSource = link.sourceId === activeNode.id;
+                    const connectedNodeId = isSource ? link.targetId : link.sourceId;
+                    const connectedNode = nodes.find(n => n.id === connectedNodeId);
+                    return (
+                      <div
+                        key={link.id}
+                        className="flex items-center justify-between rounded-lg bg-zinc-800 px-3 py-2"
+                      >
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: link.color || '#355ea1' }}
+                          />
+                          <span className="text-xs text-zinc-400">{isSource ? 'to' : 'from'}</span>
+                          <span className="truncate text-sm text-white">{connectedNode?.title || 'Unknown'}</span>
+                          {link.description && (
+                            <span className="truncate text-xs text-zinc-500">({link.description})</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleEditConnection(link)}
+                            className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-blue-400"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleRemoveConnection(link.id)}
+                            className="rounded p-1 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-red-400"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         </div>
+
+        <div className="flex items-center justify-between border-t border-zinc-800 px-4 py-3">
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+          >
+            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            Delete
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 rounded-lg bg-[#355ea1] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#265fbd] disabled:opacity-50"
+          >
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Changes
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-zinc-800 px-4 py-3">
-        <button
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
-        >
-          {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-          Delete
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="flex items-center gap-2 rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#265fbd] disabled:opacity-50"
-        >
-          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save Changes
-        </button>
-      </div>
-    </div>
+      {isDirty && !showUnsavedPopup && (
+        <div
+          className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[1px] cursor-pointer"
+          onClick={() => setShowUnsavedPopup(true)}
+          title="You have unsaved changes"
+        />
+      )}
+
+      {showUnsavedPopup && (
+        <div className="fixed bottom-4 left-4 z-[60] w-80 rounded-lg border border-red-500/20 bg-zinc-900 p-4 shadow-2xl animate-in slide-in-from-bottom-2 fade-in duration-200">
+          <p className="text-sm font-medium text-zinc-200 mb-4">
+            Do you want to leave unsaved changes?
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={handleDiscardAndClose}
+              className="flex-1 rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/20"
+            >
+              Yes
+            </button>
+            <button
+              onClick={() => setShowUnsavedPopup(false)}
+              className="flex-1 rounded-md bg-zinc-800 px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700"
+            >
+              No
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

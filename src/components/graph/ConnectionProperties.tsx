@@ -19,7 +19,7 @@ export function ConnectionProperties({ link, onClose }: ConnectionPropertiesProp
 
     const [isEditing, setIsEditing] = useState(false);
     const [description, setDescription] = useState(link?.description || '');
-    const [color, setColor] = useState(link?.color || '#3B82F6');
+    const [color, setColor] = useState(link?.color || '#355ea1');
 
     if (!link) return null;
 
@@ -58,7 +58,7 @@ export function ConnectionProperties({ link, onClose }: ConnectionPropertiesProp
 
     const handleCancel = () => {
         setDescription(link.description || '');
-        setColor(link.color || '#3B82F6');
+        setColor(link.color || '#355ea1');
         setIsEditing(false);
     };
 
@@ -158,7 +158,7 @@ export function ConnectionProperties({ link, onClose }: ConnectionPropertiesProp
                         </button>
                         <button
                             onClick={handleUpdate}
-                            className="flex-1 rounded-lg bg-[#3B82F6] py-2 text-sm font-medium text-white hover:bg-[#265fbd] transition-colors"
+                            className="flex-1 rounded-lg bg-[#355ea1] py-2 text-sm font-medium text-white hover:bg-[#265fbd] transition-colors"
                         >
                             Update
                         </button>

@@ -64,7 +64,7 @@ export function ColorPicker({ selectedColor, onChange, label }: ColorPickerProps
           >
             {isColorInPalette && <Plus className="h-3.5 w-3.5 text-zinc-400" />}
           </button>
-          
+
           {showCustomPicker && (
             <div className="absolute left-0 top-8 z-50 rounded-lg border border-zinc-700 bg-zinc-800 p-3 shadow-xl w-48">
               <div className="space-y-2">
@@ -91,14 +91,14 @@ export function ColorPicker({ selectedColor, onChange, label }: ColorPickerProps
                         }
                       }
                     }}
-                    placeholder="#3B82F6"
+                    placeholder="#355ea1"
                     className="w-full rounded-lg bg-zinc-700 px-3 py-1.5 text-sm text-white placeholder-zinc-500 outline-none uppercase"
                     maxLength={7}
                   />
                 </div>
                 <button
                   onClick={() => setShowCustomPicker(false)}
-                  className="w-full mt-2 rounded-lg bg-[#3B82F6] py-1.5 text-xs font-medium text-white hover:bg-[#265fbd] transition-colors"
+                  className="w-full mt-2 rounded-lg bg-[#355ea1] py-1.5 text-xs font-medium text-white hover:bg-[#265fbd] transition-colors"
                 >
                   Done
                 </button>

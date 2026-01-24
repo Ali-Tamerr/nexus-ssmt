@@ -169,7 +169,7 @@ export function CommandPalette() {
             <button
               onClick={handleCreateNode}
               disabled={isCreating}
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${selectedIndex === 0 ? 'bg-[#3B82F6] text-white' : 'text-zinc-300 hover:bg-zinc-800'
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${selectedIndex === 0 ? 'bg-[#355ea1] text-white' : 'text-zinc-300 hover:bg-zinc-800'
                 }`}
             >
               {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -187,7 +187,7 @@ export function CommandPalette() {
                     key={node.id}
                     onClick={() => handleSelectNode(node)}
                     className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${selectedIndex === itemIndex
-                      ? 'bg-[#3B82F6] text-white'
+                      ? 'bg-[#355ea1] text-white'
                       : 'text-zinc-300 hover:bg-zinc-800'
                       }`}
                   >
