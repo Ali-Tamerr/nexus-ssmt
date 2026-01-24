@@ -28,13 +28,42 @@ export function getShapeBounds(shape: DrawnShape, globalScale: number = 1): Shap
         textWidth = metrics.width;
     }
     
+    const angle = shape.points.length >= 2 
+      ? Math.atan2(shape.points[1].y - shape.points[0].y, shape.points[1].x - shape.points[0].x)
+      : 0;
+
+    const p0 = shape.points[0];
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+
+    // Calculate vectors for width and height edges
+    // Width vector
+    const wx = textWidth * cos;
+    const wy = textWidth * sin;
+    // Height vector (rotated 90 degrees clockwise)
+    const hx = -textHeight * sin;
+    const hy = textHeight * cos;
+
+    // Calculate 4 corners
+    const x1 = p0.x;
+    const y1 = p0.y;
+    const x2 = p0.x + wx;
+    const y2 = p0.y + wy;
+    const x3 = p0.x + wx + hx;
+    const y3 = p0.y + wy + hy;
+    const x4 = p0.x + hx;
+    const y4 = p0.y + hy;
+
+    const xs = [x1, x2, x3, x4];
+    const ys = [y1, y2, y3, y4];
+
     return {
-      minX: shape.points[0].x,
-      minY: shape.points[0].y,
-      maxX: shape.points[0].x + textWidth,
-      maxY: shape.points[0].y + textHeight,
-      width: textWidth,
-      height: textHeight,
+      minX: Math.min(...xs),
+      minY: Math.min(...ys),
+      maxX: Math.max(...xs),
+      maxY: Math.max(...ys),
+      width: Math.max(...xs) - Math.min(...xs),
+      height: Math.max(...ys) - Math.min(...ys),
     };
   }
 

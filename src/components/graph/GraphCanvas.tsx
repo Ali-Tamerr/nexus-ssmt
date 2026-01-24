@@ -1023,7 +1023,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
     if (currentSelectedIds.size === 1) {
       const selectedShape = filteredShapes.find(s => currentSelectedIds.has(s.id));
       if (selectedShape) {
-        const bounds = getShapeBounds(selectedShape);
+        const bounds = getShapeBounds(selectedShape, scale);
         if (bounds) {
           const handle = getHandleAtPoint(worldPoint, bounds, scale);
           if (handle) isOverHandle = true;
@@ -1494,7 +1494,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
         drawSelectionBox(ctx, shape, globalScale);
 
         if (selectedShapeIds.size === 1) {
-          const bounds = getShapeBounds(shape);
+          const bounds = getShapeBounds(shape, globalScale);
           if (bounds) {
             drawResizeHandles(ctx, bounds, globalScale);
           }
@@ -1543,7 +1543,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
     if (selectedIds.size === 1) {
       const selectedShape = filteredShapes.find(s => selectedIds.has(s.id));
       if (selectedShape) {
-        const bounds = getShapeBounds(selectedShape);
+        const bounds = getShapeBounds(selectedShape, scale);
         if (bounds) {
           const handle = getHandleAtPoint(worldPoint, bounds, scale);
 
@@ -1796,7 +1796,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
                 if (selectedShapeIds.size === 1 && !isDraggingSelection) {
                   const selectedShape = filteredShapes.find(s => selectedShapeIds.has(s.id));
                   if (selectedShape) {
-                    const bounds = getShapeBounds(selectedShape);
+                    const bounds = getShapeBounds(selectedShape, scale);
                     if (bounds) {
                       const handle = getHandleAtPoint(worldPoint, bounds, scale);
                       setHoveredResizeHandle(handle);

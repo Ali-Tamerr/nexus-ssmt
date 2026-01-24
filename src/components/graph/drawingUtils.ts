@@ -120,6 +120,7 @@ export function drawShapeOnContext(
                 ctx.font = `${fontSize}px ${shape.fontFamily || 'Inter'}, sans-serif`;
                 ctx.fillStyle = shape.color;
                 ctx.textBaseline = 'top';
+                ctx.textAlign = 'left';
                 
                 if (points.length >= 2) {
                     const angle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
@@ -186,11 +187,27 @@ export function getShapeBounds(shape: DrawnShape, globalScale: number = 1, ctx?:
              ctx.restore();
         }
         
+        const angle = points.length >= 2 
+          ? Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x)
+          : 0;
+
+        const p0 = points[0];
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+
+        const wx = textWidth * cos;
+        const wy = textWidth * sin;
+        const hx = -textHeight * sin;
+        const hy = textHeight * cos;
+
+        const xs = [p0.x, p0.x + wx, p0.x + wx + hx, p0.x + hx];
+        const ys = [p0.y, p0.y + wy, p0.y + wy + hy, p0.y + hy];
+
         return {
-            minX: points[0].x,
-            maxX: points[0].x + textWidth,
-            minY: points[0].y,
-            maxY: points[0].y + textHeight
+            minX: Math.min(...xs),
+            minY: Math.min(...ys),
+            maxX: Math.max(...xs),
+            maxY: Math.max(...ys)
         };
     }
 
