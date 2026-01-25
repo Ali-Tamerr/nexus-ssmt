@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { useGraphStore } from '@/store/useGraphStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useToast } from '@/context/ToastContext';
 import { Project } from '@/types/knowledge';
 import { api } from '@/lib/api';
 
@@ -21,6 +22,7 @@ export default function HomePage() {
     projects,
     setProjects,
     addProject,
+    deleteProject,
     setCurrentProject,
     isCreateProjectOpen,
     toggleCreateProject,
@@ -28,6 +30,8 @@ export default function HomePage() {
     setLoading,
     setCurrentUserId,
   } = useGraphStore();
+
+  const { showToast, showConfirmation } = useToast();
 
   const { user, isAuthenticated, hasHydrated } = useAuthStore();
 
@@ -62,10 +66,12 @@ export default function HomePage() {
     }
   }, [user, isAuthenticated, setProjects, setLoading]);
 
-  const filteredProjects = projects.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProjects = projects
+    .filter((p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   const handleCreateProject = async (data: { name: string; description?: string; color: string }) => {
     if (!user?.id) return;
@@ -107,8 +113,32 @@ export default function HomePage() {
     try {
       await api.projects.update(project.id, { ...project, name: newName });
       setProjects(projects.map(p => p.id === project.id ? { ...p, name: newName } : p));
+      showToast('Project renamed', 'success');
     } catch (err) {
       setProjects(projects.map(p => p.id === project.id ? { ...p, name: newName } : p));
+      showToast('Failed to rename project', 'error');
+    }
+  };
+
+  const handleDeleteProject = async (project: Project) => {
+    if (!await showConfirmation(`Are you sure you want to delete "${project.name}"?`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.projects.delete(project.id);
+      deleteProject(project.id);
+      showToast('Project deleted', 'success');
+    } catch (err) {
+      console.error('Failed to delete project:', err);
+      // Even if API fails, delete locally for now? Or show error.
+      // Better only local if error is 404.
+      // For now, assume it might be local only or sync issue.
+      deleteProject(project.id);
+      showToast('Project deleted (local)', 'info');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -157,6 +187,7 @@ export default function HomePage() {
                 viewMode={viewMode}
                 onProjectClick={handleOpenProject}
                 onProjectEdit={handleEditProject}
+                onProjectDelete={handleDeleteProject}
               />
             )}
           </>

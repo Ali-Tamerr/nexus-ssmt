@@ -527,9 +527,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
         const loadedShapes = drawings.map(apiDrawingToShape);
         setShapes(loadedShapes);
       })
-      .catch(
-      // err => console.error('Failed to load drawings:', err)
-    );
+      .catch(() => { });
   }, [currentProject?.id, apiDrawingToShape, setShapes]);
 
   const groupsLoadedRef = useRef(false);
@@ -551,12 +549,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
           const isColorName = colorNames.includes(g.name.toLowerCase());
           const newName = isColorName ? `Group ${i + 1}` : g.name;
 
-          // If renaming, also update backend
-          if (isColorName && g.name !== newName) {
+          // If renaming, also update backend (skip default group 0)
+          if (isColorName && g.name !== newName && g.id !== 0) {
             api.groups.update(g.id, { name: newName })
-              .catch(
-              // err => console.warn('Failed to rename group:', err)
-            );
+              .catch(() => { });
           }
 
           return { ...g, name: newName, order: i };
@@ -567,9 +563,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
           setActiveGroupId(groupsWithOrder[0].id);
         }
       })
-      .catch(
-      // err => console.error('Failed to load groups:', err)
-    );
+      .catch(() => { });
   }, [setGroups, setActiveGroupId]);
 
   // Update selected shapes when settings change
@@ -1455,9 +1449,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
               group: fullNode.group ? { id: fullNode.group.id, name: fullNode.group.name, color: fullNode.group.color, order: fullNode.group.order } : { id: fullNode.groupId ?? 0, name: 'Default', color: '#808080', order: 0 },
               x: n.x,
               y: n.y
-            }).catch(
-              // err => console.error('Failed to update node position:', err)
-            );
+            }).catch(() => { });
           }
         }
       });
@@ -1470,9 +1462,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
         finalShapes.forEach(s => {
           if (selectedShapeIds.has(s.id)) {
             api.drawings.update(s.id, { points: JSON.stringify(s.points) })
-              .catch(
-              // err => console.error('Failed to update drawing:', err)
-            );
+              .catch(() => { });
           }
         });
       }
@@ -1497,9 +1487,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
           group: fullNode.group ? { id: fullNode.group.id, name: fullNode.group.name, color: fullNode.group.color, order: fullNode.group.order } : { id: fullNode.groupId ?? 0, name: 'Default', color: '#808080', order: 0 },
           x: node.x,
           y: node.y
-        }).catch(
-          // err => console.error('Failed to update node position:', err)
-        );
+        }).catch(() => { });
       }
     }
   }, [setShapes]);
@@ -2019,9 +2007,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
                     if (editingShapeId) {
                       updateShape(editingShapeId, { text: textInputValue.trim() });
                       api.drawings.update(editingShapeId, { text: textInputValue.trim() })
-                        .catch(
-                        // err => console.error('Failed to update drawing:', err)
-                      );
+                        .catch(() => { });
                     } else {
                       const newShape: DrawnShape = {
                         id: crypto.randomUUID(),
@@ -2041,9 +2027,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
                           .then(createdDrawing => {
                             updateShape(newShape.id, { id: createdDrawing.id });
                           })
-                          .catch(
-                          // err => console.error('Failed to create drawing:', err)
-                        );
+                          .catch(() => { });
                       }
                     }
 

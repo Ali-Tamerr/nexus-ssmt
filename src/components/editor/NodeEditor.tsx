@@ -26,6 +26,7 @@ export function NodeEditor() {
   const addLink = useGraphStore((s) => s.addLink);
   const deleteLink = useGraphStore((s) => s.deleteLink);
   const { user } = useAuthStore();
+  const { showToast, showConfirmation } = useToast();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -128,9 +129,13 @@ export function NodeEditor() {
       updateNode(activeNode.id, { title, content, customColor });
       // Update original color so close doesn't revert the saved color
       originalColorRef.current = customColor;
+
+      showToast('Node saved successfully', 'success');
+      toggleEditor(false);
     } catch (err) {
       // console.error('Failed to save node:', err);
       setError(err instanceof Error ? err.message : 'Failed to save');
+      showToast('Failed to save node', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -138,8 +143,7 @@ export function NodeEditor() {
 
   const handleDelete = async () => {
     if (!activeNode) return;
-    const { showConfirmation, showToast } = useToast();
-    
+
     if (!await showConfirmation('Are you sure you want to delete this node?')) return;
 
     setIsDeleting(true);

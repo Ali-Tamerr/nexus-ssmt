@@ -77,6 +77,16 @@ export default function EditorPage() {
             if (!isAuthenticated || !projectId || dataLoadedRef.current) return;
 
             dataLoadedRef.current = true;
+
+            // Basic UUID check to prevent 400s
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (!uuidRegex.test(projectId)) {
+                // If invalid ID (e.g. local demo string not uuid), don't fetch.
+                // Assuming standard UUIDs.
+                setLoading(false);
+                return;
+            }
+
             setLoading(true);
             setError(null);
 
@@ -117,7 +127,8 @@ export default function EditorPage() {
                     l => nodeIds.has(l.sourceId) || nodeIds.has(l.targetId)
                 );
                 setLinks(projectLinks);
-            } catch (err) {
+            } catch (err: any) {
+                console.warn('Failed to load project data:', err.message);
                 setNodes([]);
                 setLinks([]);
             } finally {
@@ -200,9 +211,7 @@ export default function EditorPage() {
                     customColor: randomColor,
                     x: randomX,
                     y: randomY,
-                }).catch(
-                    // err => console.error('Failed to persist initial node properties:', err)
-                );
+                }).catch(() => { });
             }
 
             addNode(newNode);
