@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     }
 
     // Call backend API to register user (sync with backend)
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7007';
+    const apiUrl = process.env.NEXT_PRIVATE_API_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim() || 'https://localhost:7007';
     const response = await fetch(`${apiUrl}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

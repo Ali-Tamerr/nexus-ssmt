@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { email } = await context.params;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7007';
+    const apiUrl = process.env.NEXT_PRIVATE_API_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim() || 'https://localhost:7007';
     const response = await fetch(`${apiUrl}/api/profiles/email/${encodeURIComponent(email)}`);
 
     if (response.status === 404) {
