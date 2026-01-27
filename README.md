@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🧠 Nexus: Social Study Mapping Tool
 
-## Getting Started
+> **Transform scattered lecture notes into an interactive, visual Knowledge Graph.**
 
-First, run the development server:
+Nexus moves beyond linear folders and lists, allowing students to map logic, visualize connections between assignments and resources, and share their study roadmaps with peers.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+![Status](https://img.shields.io/badge/Status-Active_Development-blue)
+![Tech Stack](https://img.shields.io/badge/Tech-Next.js_15_%7C_D3.js_%7C_TypeScript-black)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🎯 The Core Vision
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Nexus** is a **Social Study Mapping** tool designed for students who deal with complex, interconnected subjects (like Computer Science).
 
-## Learn More
+Instead of isolating information in separate files, Nexus lets you:
 
-To learn more about Next.js, take a look at the following resources:
+- **Visualize** how "Topic A" is a prerequisite for "Topic B."
+- **Link** assignments directly to the specific lectures or resources required to solve them.
+- **Share** entire knowledge graphs via a simple link, replacing repetitive manual explanations.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🛠️ The Problems We Solve
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Problem                          | The Nexus Solution                                                                         |
+| :------------------------------- | :----------------------------------------------------------------------------------------- |
+| **Information Fragmentation**    | Connect lecture slides, assignments, and external resources in a single visual map.        |
+| **Repetitive Explanations**      | Don't tell a friend what to study—send them the graph. "Here's the path for Assignment 1." |
+| **The "Where to Start" Barrier** | Provide a visual roadmap for new or struggling students to find their path immediately.    |
+| **Lack of Visual Context**       | Standard note-taking apps are linear. Nexus is spatial, showing logical dependencies.      |
 
-## Deploy on Vercel
+## 🌟 Key Features
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **🕸️ Interactive Knowledge Graphs**: Powered by **D3-force** physics for a dynamic, tactile feel. Nodes float, connect, and react to your touch.
+- **⚡ Modern Architecture**: Built on **Next.js 15 (App Router)** and **TypeScript** for high performance and stability.
+- **📝 Active Recall & Annotation**: Use drawing tools (pen, shapes) to annotate your graph manually, acting as a digital whiteboard.
+- **🔗 Roadmap as a Service**: Turn private study graphs into shareable URLs.
+- **📂 Custom `.nxgr` Support**: A dedicated file format for storing, exporting, and importing knowledge maps.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📖 Key User Scenarios
+
+### 1. The "Assignment Helper"
+
+_Scenario_: A peer asks, "What do I need to review for Assignment 1?"
+_Action_: Instead of sending a list of filenames, you send a Nexus link. They see the "Assignment 1" node connected specifically to "Lecture 3 (Trees)" and "Tutorial 4 (Recursion)."
+
+### 2. Resource Referencing
+
+_Scenario_: You are studying for a difficult exam.
+_Action_: You create a central node for the exam topic and attach direct links to Google Classroom PDFs, YouTube explanations, and your own summary notes.
+
+### 3. "Whiteboard" Sessions
+
+_Scenario_: You need to test your memory of a system architecture.
+_Action_: You create nodes for the components and use the **Draw Tool** to manually sketch the data flow lines between them, verifying your understanding through active recall.
+
+## 👥 Target Audience
+
+- **Primary**: Computer Science & Technology Students dealing with abstract, dependency-heavy concepts.
+- **Secondary**: Top-performing students and Study Groups who create high-value educational roadmaps.
+
+
+## 🏗️ Technology Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Visualization**: D3.js, `react-force-graph`
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+- **State Management**: Zustand
+- **Data Fetching**: Custom API Client
+
+---
+
+_Nexus is strictly an educational tool aimed at fostering collaboration and clearer understanding of complex academic materials._
