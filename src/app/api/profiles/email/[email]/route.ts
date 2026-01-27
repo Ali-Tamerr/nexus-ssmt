@@ -1,13 +1,13 @@
 // app/api/profiles/email/[email]/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
 export async function GET(
-  req: Request,
-  { params }: { params: { email: string } }
+  req: NextRequest,
+  context: { params: Promise<{ email: string }> }
 ) {
   try {
-    const email = decodeURIComponent(params.email);
+    const { email } = await context.params;
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7007';
     const response = await fetch(`${apiUrl}/api/profiles/email/${encodeURIComponent(email)}`);
 
