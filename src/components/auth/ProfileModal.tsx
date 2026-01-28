@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { X, User, Camera, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { api } from '@/lib/api';
+import { getFriendlyErrorMessage } from '@/utils/errorUtils';
 
 export type ModalMode = 'edit_profile' | 'change_password';
 
@@ -81,8 +82,7 @@ export function ProfileModal({ isOpen, onClose, initialMode = 'edit_profile' }: 
             login(mergedUser);
             onClose();
         } catch (error) {
-            // console.error('Failed to update profile:', error);
-            showToast('Failed to update profile', 'error');
+            showToast(getFriendlyErrorMessage(error), 'error');
         } finally {
             setIsLoading(false);
         }
@@ -124,8 +124,7 @@ export function ProfileModal({ isOpen, onClose, initialMode = 'edit_profile' }: 
             showToast('Password updated successfully', 'success');
             onClose();
         } catch (error) {
-            // console.error('Failed to update password:', error);
-            showToast('Failed to update password', 'error');
+            showToast(getFriendlyErrorMessage(error), 'error');
         } finally {
             setIsLoading(false);
         }

@@ -165,3 +165,9 @@ textarea::placeholder {
   background: rgba(139, 92, 246, 0.3);
   color: #ffffff;
 }
+
+/* Hide browser default password reveal and clear buttons (Edge/IE) */
+::-ms-reveal,
+::-ms-clear {
+  display: none;
+}

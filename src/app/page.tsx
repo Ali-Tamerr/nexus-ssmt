@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { useGraphStore } from '@/store/useGraphStore';
@@ -8,12 +8,27 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useToast } from '@/context/ToastContext';
 import { Project } from '@/types/knowledge';
 import { api } from '@/lib/api';
+import { getFriendlyErrorMessage } from '@/utils/errorUtils';
 
 import { LoadingScreen, LoadingOverlay } from '@/components/ui';
 import { Navbar, AuthNav } from '@/components/layout';
 import { ProjectGrid, ProjectsToolbar, CreateProjectModal } from '@/components/projects';
 import { WelcomeHero } from '@/components/home/WelcomeHero';
 import { AuthModal } from '@/components/auth/AuthModal';
+
+function AuthErrorHandler() {
+  const searchParams = useSearchParams();
+  const errorParam = searchParams.get('error');
+
+  useEffect(() => {
+    if (errorParam && window.opener) {
+      window.opener.postMessage({ type: 'NEXUS_AUTH_ERROR', error: errorParam }, window.location.origin);
+      try { window.close(); } catch (e) { }
+    }
+  }, [errorParam]);
+
+  return null;
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -40,16 +55,6 @@ export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
-  const searchParams = useSearchParams();
-  const errorParam = searchParams.get('error');
-
-  useEffect(() => {
-    if (errorParam && window.opener) {
-      // We are in a popup that failed auth and redirected here
-      window.opener.postMessage({ type: 'NEXUS_AUTH_ERROR', error: errorParam }, window.location.origin);
-      try { window.close(); } catch (e) { }
-    }
-  }, [errorParam]);
 
   useEffect(() => {
     if (user?.id) {
@@ -127,7 +132,7 @@ export default function HomePage() {
       showToast('Project renamed', 'success');
     } catch (err) {
       setProjects(projects.map(p => p.id === project.id ? { ...p, name: newName } : p));
-      showToast('Failed to rename project', 'error');
+      showToast(getFriendlyErrorMessage(err), 'error');
     }
   };
 
@@ -164,6 +169,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-zinc-950">
+      <Suspense fallback={null}>
+        <AuthErrorHandler />
+      </Suspense>
       <Navbar showSearch={false} />
 
       <main className="mx-auto max-w-6xl px-6 py-8">

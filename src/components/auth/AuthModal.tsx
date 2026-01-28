@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { getFriendlyErrorMessage } from '@/utils/errorUtils';
 import { api } from '@/lib/api';
 import { signIn } from 'next-auth/react';
 import Image from 'next/image';
@@ -147,33 +148,24 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
         onClose();
         resetForm();
       }
-    } catch (err) {
-      // console.error('Auth error:', err);
+    } catch (err: any) {
+      // Special case: Signup succeeded but auto-login failed
+      if (mode === 'signup' && (err.message?.includes('CredentialsSignin') || err.message?.includes('Invalid email or password'))) {
+        setError('Account created successfully, but auto-login failed. Please sign in manually.');
+        setMode('login');
+        return;
+      }
 
-      if (err instanceof Error) {
-        if (err.message.includes('404') || err.message.includes('Not Found')) {
-          if (mode === 'login') {
-            setError('Account not found. Please sign up first.');
-          } else {
-            setError('Registration failed. The server returned 404 - check if the API endpoint exists.');
-          }
-        } else if (err.message.includes('already exists')) {
-          setError('An account with this email already exists. Please sign in instead.');
-        } else if (err.message.includes('Failed to fetch')) {
-          setError('Cannot connect to server. Please check if the backend is running.');
-        } else if (err.message.includes('CredentialsSignin')) {
-          if (mode === 'signup') {
-            // Registration likely succeeded, but auto-login failed.
-            setError('Account created successfully, but auto-login failed. Please sign in manually.');
-            setMode('login'); // Switch to login mode
-          } else {
-            setError('Invalid email or password');
-          }
-        } else {
-          setError(err.message);
-        }
+      const friendlyMsg = getFriendlyErrorMessage(err);
+
+      // Contextual overrides for AuthModal specifically
+      if (friendlyMsg.includes('404') && mode === 'login') {
+        setError('We couldn\'t find an account with that email. Please sign up.');
+      } else if (friendlyMsg.includes('404') && mode === 'signup') {
+        // If registering returns 404, it's weird (endpoint missing), but generic message is okay or specific hint.
+        setError('Registration service unavailable (404). Please try again later.');
       } else {
-        setError('Authentication failed');
+        setError(friendlyMsg);
       }
     } finally {
       setIsSubmitting(false);
