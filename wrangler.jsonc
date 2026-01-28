@@ -1,14 +1,9 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "main": ".open-next/worker.js",
   "name": "nexus",
   "pages_build_output_dir": ".open-next/assets",
   "compatibility_date": "2026-01-27",
   "compatibility_flags": [
     "nodejs_compat"
-  ],
-  "assets": {
-    "directory": ".open-next/assets",
-    "binding": "NEXT_ASSETS"
-  }
+  ]
 }
