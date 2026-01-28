@@ -134,7 +134,7 @@ export interface Profile {
   createdAt: string;
   updatedAt: string;
   passwordHash?: string; // Should not be exposed ideally
-  provider?: 'email' | 'google';
+  provider?: string; // 'email' | 'google'
 }
 
 export interface RegisterRequest {
@@ -142,7 +142,7 @@ export interface RegisterRequest {
   displayName?: string;
   avatarUrl?: string;
   password: string;
-  provider?: 'email' | 'google';
+  provider?: string;
 }
 
 export { GROUP_COLORS, BRAND_COLOR, NODE_COLORS, COLOR_PALETTE } from '@/lib/constants';

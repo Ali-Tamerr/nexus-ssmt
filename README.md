@@ -58,7 +58,6 @@ _Action_: You create nodes for the components and use the **Draw Tool** to manua
 - **Primary**: Computer Science & Technology Students dealing with abstract, dependency-heavy concepts.
 - **Secondary**: Top-performing students and Study Groups who create high-value educational roadmaps.
 
-
 ## 🏗️ Technology Stack
 
 - **Framework**: Next.js 15 (App Router)

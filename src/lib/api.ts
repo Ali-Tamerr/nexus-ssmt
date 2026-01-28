@@ -262,8 +262,11 @@ export const api = {
     getById: (id: string) =>
       fetchApi<Profile>(`/api/profiles/${id}`),
     
-    getByEmail: (email: string, suppressLog: boolean = false) =>
-      fetchApi<Profile>(`/api/profiles/email/${encodeURIComponent(email)}`, { suppressLog }),
+    getByEmail: (email: string, provider?: string, suppressLog: boolean = false) => {
+      let url = `/api/profiles/email/${encodeURIComponent(email)}`;
+      if (provider) url += `?provider=${encodeURIComponent(provider)}`;
+      return fetchApi<Profile>(url, { suppressLog });
+    },
     
     update: (id: string, data: Partial<Profile>) =>
       fetchApiWithBody<Profile>(`/api/profiles/${id}`, 'PUT', data),

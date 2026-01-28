@@ -28,13 +28,13 @@ async function backendRegister(user: any) {
     if (!res.ok) {
       if (res.status === 409) return null; // Already exists
       const text = await res.text();
-      console.error('Backend registration failed:', text);
+      // console.error('Backend registration failed:', text);
       return null;
     }
     
     return await res.json();
   } catch (error) {
-    console.error('Backend registration error:', error);
+    // console.error('Backend registration error:', error);
     return null;
   }
 }
@@ -54,7 +54,7 @@ async function backendLogin(credentials: any) {
     if (!res.ok) return null;
     return await res.json();
   } catch (error) {
-    console.error('Backend login error:', error);
+    // console.error('Backend login error:', error);
     return null;
   }
 }
@@ -136,7 +136,7 @@ export const config = {
             });
             
             if (!backendUser) {
-               console.error('Core Auth: Failed to register user in backend.');
+               // console.error('Core Auth: Failed to register user in backend.');
                return false; 
             }
           }
@@ -145,7 +145,7 @@ export const config = {
           user.id = backendUser.id || backendUser.Id;
           return true;
         } catch (e) {
-            console.error('Core Auth: Error in signIn callback', e);
+            // console.error('Core Auth: Error in signIn callback', e);
             return false;
         }
       }
