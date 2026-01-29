@@ -250,10 +250,18 @@ export const api = {
       fetchApi<{ id: number; name: string; color: string; order: number; projectId: number | null }>(`/api/groups/${id}`),
 
     create: (data: { name: string; color: string; order?: number; projectId: number }) =>
-      fetchApiWithBody<{ id: number; name: string; color: string; order: number; projectId: number }>('/api/groups', 'POST', data),
+      fetchApiWithBody<{ id: number; name: string; color: string; order: number; projectId: number }>('/api/groups', 'POST', {
+        name: data.name,
+        color: data.color,
+        order: data.order ?? 0,
+        projectId: data.projectId,
+      }),
 
     update: (id: number, data: Partial<{ name: string; color: string; order: number; projectId: number }>) =>
-      fetchApiWithBody<{ id: number; name: string; color: string; order: number; projectId: number }>(`/api/groups/${id}`, 'PUT', data, true),
+      fetchApiWithBody<{ id: number; name: string; color: string; order: number; projectId: number }>(`/api/groups/${id}`, 'PUT', {
+        id: id,
+        ...data,
+      }, true),
 
     delete: (id: number) =>
       fetchApi<void>(`/api/groups/${id}`, { method: 'DELETE', suppressLog: true }),
