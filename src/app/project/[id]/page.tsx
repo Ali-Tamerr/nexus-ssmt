@@ -69,6 +69,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
       try {
         const project = await api.projects.getById(id);
+
+        // Ownership Check
+        if (project.userId !== user?.id) {
+          throw new Error("Unauthorized");
+        }
+
         setCurrentProject(project);
 
         const projectNodes = await api.nodes.getByProject(id);
@@ -80,7 +86,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           l => nodeIds.has(l.sourceId) || nodeIds.has(l.targetId)
         );
         setLinks(projectLinks);
-      } catch (err) {
+      } catch (err: any) {
+        if (err.message === "Unauthorized") {
+          router.push('/');
+          return;
+        }
+
         setCurrentProject({
           id,
           name: 'Project',
@@ -205,7 +216,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const filteredNodes = filterNodes(nodes, searchQuery);
 
-  if (!hasHydrated || !isMounted || !isAuthenticated) {
+  if (!hasHydrated || !isMounted || !isAuthenticated || !currentProject || currentProject.id !== id) {
     return <LoadingScreen />;
   }
 

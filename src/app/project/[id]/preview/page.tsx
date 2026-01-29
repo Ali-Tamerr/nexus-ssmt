@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState, useRef } from 'react';
+import { use, useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -10,8 +10,9 @@ import { NODE_COLORS } from '@/lib/constants';
 import { LoadingScreen } from '@/components/ui';
 import { Node, Link as LinkType, DrawnShape } from '@/types/knowledge';
 import { NodePreviewPaneContent } from '@/components/editor/NodePreviewPane';
-
 import { drawShapeOnContext } from '@/components/graph/drawingUtils';
+import { PreviewNavbar } from '@/components/layout/PreviewNavbar';
+import { useGraphExport } from '@/hooks/useGraphExport';
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false }) as any;
 
@@ -31,6 +32,9 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [projectName, setProjectName] = useState('');
+    const [projectDescription, setProjectDescription] = useState('');
+    const [wallpaper, setWallpaper] = useState<string>('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [nodes, setNodes] = useState<Node[]>([]);
     const [links, setLinks] = useState<LinkType[]>([]);
     const [shapes, setShapes] = useState<DrawnShape[]>([]);
@@ -40,16 +44,23 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
     const [isHoveringNode, setIsHoveringNode] = useState(false);
     const [activeNode, setActiveNode] = useState<Node | null>(null);
 
+    const { exportToPNG, exportToJPG } = useGraphExport(
+        containerRef,
+        graphRef,
+        nodes,
+        shapes,
+        searchQuery,
+        projectName
+    );
+
     useEffect(() => {
         setIsMounted(true);
 
         const updateDimensions = () => {
-            if (containerRef.current) {
-                setDimensions({
-                    width: containerRef.current.offsetWidth,
-                    height: containerRef.current.offsetHeight,
-                });
-            }
+            setDimensions({
+                width: window.innerWidth,
+                height: window.innerHeight,
+            });
         };
 
         updateDimensions();
@@ -65,6 +76,8 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
             try {
                 const project = await api.projects.getById(id);
                 setProjectName(project.name);
+                setProjectDescription(project.description || '');
+                setWallpaper(project.wallpaper || '');
 
                 let projectNodes = await api.nodes.getByProject(id);
 
@@ -132,7 +145,16 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
         loadProjectData();
     }, [id]);
 
-    const graphData = {
+    const handleWallpaperChange = async (newWallpaper: string) => {
+        setWallpaper(newWallpaper);
+        try {
+            await api.projects.update(id, { wallpaper: newWallpaper });
+        } catch (e) {
+            // console.error('Failed to update wallpaper:', e);
+        }
+    };
+
+    const graphData = useMemo(() => ({
         nodes: nodes.map(n => ({
             id: n.id,
             title: n.title,
@@ -147,9 +169,9 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
             color: l.color,
             description: l.description,
         })),
-    };
+    }), [nodes, links]);
 
-    const nodeCanvasObject = (
+    const nodeCanvasObject = useCallback((
         node: { id?: string | number; x?: number; y?: number; title?: string; customColor?: string },
         ctx: CanvasRenderingContext2D,
         globalScale: number
@@ -157,6 +179,10 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
         const label = node.title || String(node.id);
         const fontSize = Math.max(12 / globalScale, 4);
         ctx.font = `600 ${fontSize}px Inter, system-ui, sans-serif`;
+
+        const isMatch = !searchQuery || label.toLowerCase().includes(searchQuery.toLowerCase());
+        const opacity = isMatch ? 1 : 0.1;
+        ctx.globalAlpha = opacity;
 
         const baseColor = node.customColor || '#8B5CF6';
         const nodeRadius = 6;
@@ -191,13 +217,31 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
         ctx.textBaseline = 'top';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.fillText(label, x, y + nodeRadius + 3);
-    };
+    }, [searchQuery]);
 
-    const onRenderFramePost = (ctx: CanvasRenderingContext2D, globalScale: number) => {
+    const onRenderFramePost = useCallback((ctx: CanvasRenderingContext2D, globalScale: number) => {
         shapes.forEach(shape => {
             drawShapeOnContext(ctx, shape, globalScale);
         });
-    };
+    }, [shapes]);
+
+    const handleNodeHover = useCallback((node: any) => {
+        setIsHoveringNode(!!node);
+    }, []);
+
+    const handleNodeClick = useCallback(async (node: any) => {
+        const foundNode = nodes.find(n => n.id === node.id);
+        if (foundNode) {
+            setActiveNode(foundNode);
+            try {
+                const attachments = await api.attachments.getByNode(foundNode.id);
+                const updatedNode = { ...foundNode, attachments };
+                setActiveNode(updatedNode);
+            } catch (e) {
+                // console.error('Failed to fetch attachments:', e);
+            }
+        }
+    }, [nodes]);
 
     if (!isMounted || isLoading) {
         return <LoadingScreen />;
@@ -219,29 +263,30 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
     }
 
     return (
-        <div className="flex h-screen flex-col bg-zinc-950">
-            <header className="flex h-14 items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-4">
-                <div className="flex items-center gap-4">
-                    <Link
-                        href="/"
-                        className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        <span className="text-sm">Back</span>
-                    </Link>
-
-                    <div className="h-6 w-px bg-zinc-800" />
-
-                    <div>
-                        <h1 className="text-sm font-semibold text-white">{projectName || 'Project'}</h1>
-                        <p className="text-[10px] text-zinc-500">Preview Mode • {nodes.length} nodes</p>
-                    </div>
-                </div>
-            </header>
+        <div
+            className="relative h-screen w-full overflow-hidden bg-zinc-950 bg-cover bg-center"
+            style={{
+                backgroundImage: wallpaper
+                    ? (wallpaper.startsWith('http') || wallpaper.startsWith('url')
+                        ? `url(${wallpaper})`
+                        : `url(data:image/png;base64,${wallpaper})`)
+                    : undefined
+            }}
+        >
+            <PreviewNavbar
+                projectName={projectName}
+                projectDescription={projectDescription}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                onExportPNG={exportToPNG}
+                onExportJPG={exportToJPG}
+                currentWallpaper={wallpaper}
+                onWallpaperChange={handleWallpaperChange}
+            />
 
             <div
                 ref={containerRef}
-                className="relative flex-1 overflow-hidden [&_canvas]:!cursor-[inherit]"
+                className="absolute inset-0 z-10 [&_canvas]:!cursor-[inherit]"
                 style={{ cursor: isHoveringNode ? 'pointer' : 'default' }}
             >
                 <ForceGraph2D
@@ -269,11 +314,8 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
                     enablePanInteraction={true}
                     cooldownTicks={100}
                     d3AlphaDecay={0.02}
-                    onNodeHover={(node: any) => setIsHoveringNode(!!node)}
-                    onNodeClick={(node: any) => {
-                        const foundNode = nodes.find(n => n.id === node.id);
-                        if (foundNode) setActiveNode(foundNode);
-                    }}
+                    onNodeHover={handleNodeHover}
+                    onNodeClick={handleNodeClick}
                     onBackgroundClick={() => setActiveNode(null)}
                 />
 
