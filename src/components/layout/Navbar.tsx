@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import NexusLogo from '@/assets/Logo/Logo with no circle.svg';
-import { Search, ChevronDown, Image, Save, LayoutGrid, ChevronRight, Plus } from 'lucide-react';
+import { Search, ChevronDown, Image, Save, LayoutGrid, ChevronRight, Plus, Github } from 'lucide-react';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGraphStore } from '@/store/useGraphStore';
@@ -298,6 +298,17 @@ export function ProjectNavbar({
             <span className="hidden md:inline">Add Node</span>
           </Button>
         )}
+
+        <a
+          href="https://github.com/Ali-Tamerr/nexus--social-study-mapping-tool"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center h-9 w-9 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition-colors"
+          title="View on GitHub"
+        >
+          <Github className="h-5 w-5" />
+        </a>
+
         <UserMenu />
       </div>
     </header>
