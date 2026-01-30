@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Github } from 'lucide-react';
 
 import { useGraphStore } from '@/store/useGraphStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -171,7 +172,17 @@ export default function HomePage() {
       <Suspense fallback={null}>
         <AuthErrorHandler />
       </Suspense>
-      <Navbar showSearch={false} />
+      <Navbar showSearch={false}>
+        <a
+          href="https://github.com/Ali-Tamerr/nexus--social-study-mapping-tool"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center h-9 w-9 border border-zinc-400 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition-colors"
+          title="View on GitHub"
+        >
+          <Github className="h-5 w-5" />
+        </a>
+      </Navbar>
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         {!isAuthenticated ? (
