@@ -1,4 +1,5 @@
 'use client';
+// Refactored for Optimistic UI
 
 import { useState, useEffect, useRef } from 'react';
 import { X, Save, Trash2, Plus, Image, Video, Link2, FileText, ExternalLink, Tag, Loader2, ArrowRight, Pencil } from 'lucide-react';
@@ -62,8 +63,27 @@ export function NodeEditor() {
   const [tempCustomColor, setTempCustomColor] = useState('#355ea1');
   const [showUnsavedPopup, setShowUnsavedPopup] = useState(false);
 
+  // Buffer State for Deferred Saving & Revert
+  const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
+  const [deletedAttachments, setDeletedAttachments] = useState<Map<number, Attachment>>(new Map());
+
+  const [pendingLinks, setPendingLinks] = useState<LinkType[]>([]);
+  const [deletedLinks, setDeletedLinks] = useState<Map<number, LinkType>>(new Map());
+  const [editedLinks, setEditedLinks] = useState<Map<number, LinkType>>(new Map());
+  const [originalLinks, setOriginalLinks] = useState<Map<number, LinkType>>(new Map());
+
   // Track original color to revert on cancel
   const originalColorRef = useRef<string | undefined>(undefined);
+
+  // Reset buffers when switching nodes
+  useEffect(() => {
+    setPendingAttachments([]);
+    setDeletedAttachments(new Map());
+    setPendingLinks([]);
+    setDeletedLinks(new Map());
+    setEditedLinks(new Map());
+    setOriginalLinks(new Map());
+  }, [activeNode?.id]);
 
   useEffect(() => {
     if (connectionPickerResult !== null) {
@@ -128,28 +148,79 @@ export function NodeEditor() {
     setError(null);
 
     try {
-      await api.nodes.update(activeNode.id, {
-        id: activeNode.id,
-        title,
-        content: content || '',
+      // 1. Save Node Properties
+      if (title !== activeNode.title || content !== (activeNode.content || '') || customColor !== originalColorRef.current) {
+        await api.nodes.update(activeNode.id, {
+          id: activeNode.id,
+          title,
+          content: content || '',
+          groupId: activeNode.groupId,
+          customColor,
+          projectId: activeNode.projectId,
+          userId: activeNode.userId,
+          group: activeNode.group ? { id: activeNode.group.id, name: activeNode.group.name, color: activeNode.group.color, order: activeNode.group.order } : { id: activeNode.groupId ?? 0, name: 'Default', color: '#808080', order: 0 },
+          x: activeNode.x,
+          y: activeNode.y,
+        });
+        updateNode(activeNode.id, { title, content, customColor });
+      }
 
-        groupId: activeNode.groupId,
-        customColor,
-        projectId: activeNode.projectId,
-        userId: activeNode.userId,
-        group: activeNode.group ? { id: activeNode.group.id, name: activeNode.group.name, color: activeNode.group.color, order: activeNode.group.order } : { id: activeNode.groupId ?? 0, name: 'Default', color: '#808080', order: 0 },
-        x: activeNode.x,
-        y: activeNode.y,
-      });
-      updateNode(activeNode.id, { title, content, customColor });
-      // Update original color so close doesn't revert the saved color
+      // 2. Attachments
+      for (const [id] of deletedAttachments) {
+        await api.attachments.delete(id);
+      }
+      for (const att of pendingAttachments) {
+        const newAtt = await api.attachments.create({
+          nodeId: activeNode.id,
+          fileName: att.fileName,
+          fileUrl: att.fileUrl
+        });
+        removeAttachmentFromNode(activeNode.id, att.id);
+        addAttachmentToNode(activeNode.id, newAtt);
+      }
+
+      // 3. Links
+      for (const [id] of deletedLinks) {
+        await api.links.delete(id);
+      }
+      for (const link of pendingLinks) {
+        const newLink = await api.links.create({
+          sourceId: link.sourceId,
+          targetId: link.targetId,
+          color: link.color,
+          description: link.description || undefined,
+          userId: link.userId || activeNode.userId || user?.id || ''
+        });
+        deleteLink(link.id);
+        addLink(newLink);
+      }
+      for (const [id, link] of editedLinks) {
+        const updated = await api.links.update(id, {
+          id: id,
+          sourceId: link.sourceId,
+          targetId: link.targetId,
+          color: link.color,
+          description: link.description || undefined,
+          userId: link.userId || activeNode.userId || user?.id || ''
+        });
+        updateLink(id, updated);
+      }
+
+      // Reset Buffers
+      setPendingAttachments([]);
+      setDeletedAttachments(new Map());
+      setPendingLinks([]);
+      setDeletedLinks(new Map());
+      setEditedLinks(new Map());
+      setOriginalLinks(new Map());
+
+      // Update Ref
       originalColorRef.current = customColor;
 
-      setSearchQuery(''); // Clear search to ensure node remains visible (renaming might break search match)
-      showToast('Node saved successfully',);
+      setSearchQuery('');
+      showToast('Node saved successfully');
       toggleEditor(false);
     } catch (err) {
-      // console.error('Failed to save node:', err);
       setError(err instanceof Error ? err.message : 'Failed to save');
       showToast('Failed to save node', 'error');
     } finally {
@@ -180,12 +251,32 @@ export function NodeEditor() {
   const isTitleDirty = activeNode ? title !== activeNode.title : false;
   const isContentDirty = activeNode ? content !== (activeNode.content || '') : false;
   const isColorDirty = activeNode ? activeNode.customColor !== originalColorRef.current : false;
-  const isDirty = (isTitleDirty || isContentDirty || isColorDirty);
+  const isAttachmentsDirty = pendingAttachments.length > 0 || deletedAttachments.size > 0;
+  const isLinksDirty = pendingLinks.length > 0 || deletedLinks.size > 0 || editedLinks.size > 0;
+  const isDirty = (isTitleDirty || isContentDirty || isColorDirty || isAttachmentsDirty || isLinksDirty);
 
   const handleDiscardAndClose = () => {
     if (activeNode && activeNode.customColor !== originalColorRef.current) {
       useGraphStore.getState().updateNode(activeNode.id, { customColor: originalColorRef.current });
     }
+
+    // Revert Optimistic Updates
+    if (activeNode) {
+      pendingAttachments.forEach(a => removeAttachmentFromNode(activeNode.id, a.id));
+      deletedAttachments.forEach(a => addAttachmentToNode(activeNode.id, a));
+    }
+
+    pendingLinks.forEach(l => deleteLink(l.id));
+    deletedLinks.forEach(l => addLink(l));
+    originalLinks.forEach((l, id) => updateLink(id, l));
+
+    setPendingAttachments([]);
+    setDeletedAttachments(new Map());
+    setPendingLinks([]);
+    setDeletedLinks(new Map());
+    setEditedLinks(new Map());
+    setOriginalLinks(new Map());
+
     setActiveNode(null);
     toggleEditor(false);
     setShowUnsavedPopup(false);
@@ -200,43 +291,50 @@ export function NodeEditor() {
     toggleEditor(false);
   };
 
-  const handleAddAttachment = async () => {
+  const handleAddAttachment = () => {
     if (!newAttachmentUrl.trim() || !activeNode) return;
 
-    const validUserId = currentUserId || user?.id || activeNode.userId;
-    if (!validUserId) {
-      setError('User information missing');
-      return;
-    }
-
     let url = newAttachmentUrl.trim();
-    if (!/^https?:\/\//i.test(url)) {
-      url = 'https://' + url;
-    }
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
 
-    try {
-      const attachment = await api.attachments.create({
-        nodeId: activeNode.id,
-        fileName: newAttachmentName.trim() || url.split('/').pop() || 'attachment.file',
-        fileUrl: url,
-      });
-      addAttachmentToNode(activeNode.id, attachment);
-      setNewAttachmentUrl('');
-      setNewAttachmentName('');
-      setShowAttachmentMenu(false);
-    } catch (err) {
-      // console.error('Failed to add attachment:', err);
-      setError(err instanceof Error ? err.message : 'Failed to add attachment');
-    }
+    // Simple content type detection
+    let contentType = 'text/html';
+    const ext = url.split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) contentType = 'image/' + (ext === 'jpg' ? 'jpeg' : ext);
+    else if (['mp4', 'webm'].includes(ext || '')) contentType = 'video/' + ext;
+    else if (ext === 'pdf') contentType = 'application/pdf';
+
+    const attachment: Attachment = {
+      id: -Date.now(),
+      nodeId: activeNode.id,
+      fileName: newAttachmentName.trim() || url.split('/').pop() || 'attachment.file',
+      fileUrl: url,
+      contentType,
+      createdAt: new Date().toISOString(),
+      fileSize: 0
+    };
+
+    setPendingAttachments(prev => [...prev, attachment]);
+    // Optimistic Update
+    addAttachmentToNode(activeNode.id, attachment);
+
+    setNewAttachmentUrl('');
+    setNewAttachmentName('');
+    setShowAttachmentMenu(false);
   };
 
-  const handleRemoveAttachment = async (attachmentId: number) => {
+  const handleRemoveAttachment = (attachmentId: number) => {
     if (!activeNode) return;
-    try {
-      await api.attachments.delete(attachmentId);
+
+    if (attachmentId < 0) {
+      setPendingAttachments(prev => prev.filter(a => a.id !== attachmentId));
       removeAttachmentFromNode(activeNode.id, attachmentId);
-    } catch (err) {
-      // console.error('Failed to remove attachment:', err);
+    } else {
+      const att = activeNode.attachments?.find(a => a.id === attachmentId);
+      if (att) {
+        setDeletedAttachments(prev => new Map(prev).set(attachmentId, att));
+        removeAttachmentFromNode(activeNode.id, attachmentId);
+      }
     }
   };
 
@@ -275,7 +373,7 @@ export function NodeEditor() {
     }
   };
 
-  const handleAddConnection = async () => {
+  const handleAddConnection = () => {
     if (!activeNode || !selectedTargetNodeId) return;
 
     const userId = currentUserId || user?.id;
@@ -297,39 +395,42 @@ export function NodeEditor() {
       projectId: n.projectId,
       userId: n.userId,
       group: n.group ? { id: n.group.id, name: n.group.name, color: n.group.color, order: n.group.order } : { id: n.groupId ?? 0, name: 'Default', color: '#808080', order: 0 },
+      createdAt: n.createdAt || new Date().toISOString(),
+      updatedAt: n.updatedAt || new Date().toISOString()
     });
 
-    const linkData = {
+    const link: LinkType = {
+      id: -Date.now(),
       sourceId: activeNode.id,
-      targetId: selectedTargetNodeId,
-      source: sanitizeNode(activeNode) as any,
-      target: sanitizeNode(targetNode) as any,
+      targetId: selectedTargetNodeId as number,
+      source: sanitizeNode(activeNode),
+      target: sanitizeNode(targetNode),
       color: connectionColor,
       description: connectionDescription.trim() || undefined,
       userId: userId,
+      createdAt: new Date().toISOString()
     };
 
+    setPendingLinks(prev => [...prev, link]);
+    addLink(link); // Optimistic Update
 
-    try {
-      const newLink = await api.links.create(linkData);
-      addLink(newLink);
-      setSelectedTargetNodeId('');
-      setConnectionDescription('');
-      setConnectionColor('#355ea1');
-      setShowConnectionMenu(false);
-      setError(null);
-    } catch (err) {
-      // console.error('Failed to add connection:', err);
-      setError(err instanceof Error ? err.message : 'Failed to add connection');
-    }
+    setSelectedTargetNodeId('');
+    setConnectionDescription('');
+    setConnectionColor('#355ea1');
+    setShowConnectionMenu(false);
+    setError(null);
   };
 
-  const handleRemoveConnection = async (linkId: number) => {
-    try {
-      await api.links.delete(linkId);
+  const handleRemoveConnection = (linkId: number) => {
+    if (linkId < 0) {
+      setPendingLinks(prev => prev.filter(l => l.id !== linkId));
       deleteLink(linkId);
-    } catch (err) {
-      // console.error('Failed to remove connection:', err);
+    } else {
+      const link = links.find(l => l.id === linkId);
+      if (link) {
+        setDeletedLinks(prev => new Map(prev).set(linkId, link));
+        deleteLink(linkId);
+      }
     }
   };
 
@@ -342,59 +443,40 @@ export function NodeEditor() {
     setShowConnectionMenu(true);
   };
 
-  const handleUpdateConnection = async () => {
+  const handleUpdateConnection = () => {
     if (!editingConnectionId || !activeNode) return;
-
-    const userId = currentUserId || user?.id;
-    if (!userId) {
-      setError('User ID is required to update connections');
-      return;
-    }
 
     const link = links.find(l => l.id === editingConnectionId);
     if (!link) return;
 
-    const sourceNode = nodes.find(n => n.id === link.sourceId);
-    const targetNode = nodes.find(n => n.id === link.targetId);
+    // Use current state for updates
+    const updatedLink: LinkType = {
+      ...link,
+      color: connectionColor,
+      description: connectionDescription.trim() || undefined,
+    };
 
-    if (!sourceNode || !targetNode) {
-      setError('Source or Target node not found');
-      return;
+    if (editingConnectionId < 0) {
+      setPendingLinks(prev => prev.map(l => l.id === editingConnectionId ? updatedLink : l));
+      updateLink(editingConnectionId, updatedLink); // Optimistic
+    } else {
+      // Track Original if not tracked
+      // Note: We need the value BEFORE we updated it in store. But if we edit multiple times, we need the VERY FIRST original.
+      // Since editingConnectionId > 0, it exists in originalLinks map if we edited it before.
+      if (!originalLinks.has(editingConnectionId)) {
+        setOriginalLinks(prev => new Map(prev).set(editingConnectionId, link));
+      }
+
+      setEditedLinks(prev => new Map(prev).set(editingConnectionId, updatedLink));
+      updateLink(editingConnectionId, updatedLink); // Optimistic
     }
 
-    const sanitizeNode = (n: any) => ({
-      id: n.id,
-      title: n.title,
-      groupId: n.groupId ?? 0,
-      projectId: n.projectId,
-      userId: n.userId,
-      group: n.group ? { id: n.group.id, name: n.group.name, color: n.group.color, order: n.group.order } : { id: n.groupId ?? 0, name: 'Default', color: '#808080', order: 0 },
-    });
-
-    try {
-      const updatedLink = await api.links.update(editingConnectionId, {
-        id: editingConnectionId,
-        sourceId: link.sourceId,
-        targetId: link.targetId,
-        source: sanitizeNode(sourceNode) as any,
-        target: sanitizeNode(targetNode) as any,
-        color: connectionColor,
-        description: connectionDescription.trim() || undefined,
-        userId: userId,
-      });
-
-      updateLink(editingConnectionId, updatedLink);
-
-      setSelectedTargetNodeId('');
-      setConnectionDescription('');
-      setConnectionColor('#355ea1');
-      setEditingConnectionId(null);
-      setShowConnectionMenu(false);
-      setError(null);
-    } catch (err) {
-      // console.error('Failed to update connection:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update connection');
-    }
+    setSelectedTargetNodeId('');
+    setConnectionDescription('');
+    setConnectionColor('#355ea1');
+    setEditingConnectionId(null);
+    setShowConnectionMenu(false);
+    setError(null);
   };
 
   const handleCancelEdit = () => {
