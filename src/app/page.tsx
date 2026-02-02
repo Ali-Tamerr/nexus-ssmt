@@ -17,7 +17,7 @@ import { ProjectGrid, ProjectsToolbar, CreateProjectModal, EditProjectModal } fr
 import { WelcomeHero } from '@/components/home/WelcomeHero';
 import { AuthModal } from '@/components/auth/AuthModal';
 
-function AuthErrorHandler() {
+function AuthErrorHandlerContent() {
   const searchParams = useSearchParams();
   const errorParam = searchParams.get('error');
 
@@ -29,6 +29,14 @@ function AuthErrorHandler() {
   }, [errorParam]);
 
   return null;
+}
+
+function AuthErrorHandler() {
+  return (
+    <Suspense fallback={null}>
+      <AuthErrorHandlerContent />
+    </Suspense>
+  );
 }
 
 export default function HomePage() {

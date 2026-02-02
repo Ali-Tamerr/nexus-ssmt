@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { useClassroomCourses } from '@/hooks/useClassroomApi';
 import { ClassroomCourse } from '@/lib/classroomApi';
 import { clearClassroomToken, getClassroomOAuthUrl, getClassroomToken } from '@/lib/classroomToken';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface ClassroomSelectionModalProps {
   isOpen: boolean;
@@ -20,6 +21,9 @@ export function ClassroomSelectionModal({
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isChangingAccount, setIsChangingAccount] = useState(false);
+  
+  const { user } = useAuthStore();
+  const isGoogleUser = (user as any)?.provider === 'google';
   
   const { 
     data: courses = [], 
@@ -215,13 +219,16 @@ export function ClassroomSelectionModal({
                 Change account
               </Button>
               
-              <button
-                onClick={handleDisconnect}
-                title="Disconnect Google Classroom"
-                className="p-2 rounded-lg text-zinc-400 hover:bg-red-900/30 hover:text-red-400 border border-zinc-600 border-0.5 transition-colors"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
+              {/* Only show disconnect button if user is NOT signed in with Google */}
+              {!isGoogleUser && (
+                <button
+                  onClick={handleDisconnect}
+                  title="Disconnect Google Classroom"
+                  className="p-2 rounded-lg text-zinc-400 hover:bg-red-900/30 hover:text-red-400 border border-zinc-600 border-0.5 transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
           
@@ -295,11 +302,11 @@ export function ClassroomSelectionModal({
                     <h3 className="font-medium text-white mb-1 line-clamp-2">
                       {course.name}
                     </h3>
-                    {course.description && (
+                    {/* {course.description && (
                       <p className="text-sm text-zinc-400 line-clamp-2">
                         {course.description}
                       </p>
-                    )}
+                    )} */}
                     {/* {course.room && (
                       <p className="text-xs text-zinc-500 mt-1">
                         Room: {course.room}

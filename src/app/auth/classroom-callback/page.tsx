@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function ClassroomCallbackPage() {
+function ClassroomCallbackContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [error, setError] = useState<string | null>(null);
@@ -128,5 +128,20 @@ export default function ClassroomCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ClassroomCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-zinc-900">
+        <div className="text-center p-8 bg-zinc-800 rounded-lg border border-zinc-700 max-w-md">
+          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-white">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ClassroomCallbackContent />
+    </Suspense>
   );
 }
