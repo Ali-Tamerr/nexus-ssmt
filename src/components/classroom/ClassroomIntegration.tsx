@@ -19,8 +19,9 @@ type ModalState = 'auth-prompt' | 'course-selection' | 'section-material' | null
 export function ClassroomIntegration({ isOpen, onClose }: ClassroomIntegrationProps) {
   const [modalState, setModalState] = useState<ModalState>(null);
   const [selectedCourse, setSelectedCourse] = useState<ClassroomCourse | null>(null);
+  const [forceRefresh, setForceRefresh] = useState(0);
 
-  const { hasAccess, isGoogleUser } = useHasClassroomAccess();
+  const { hasAccess } = useHasClassroomAccess();
   const { user } = useAuthStore();
   const { 
     addNode, 
@@ -37,7 +38,8 @@ export function ClassroomIntegration({ isOpen, onClose }: ClassroomIntegrationPr
 
   // Determine initial modal state when opened
   const getInitialModalState = (): ModalState => {
-    if (!isGoogleUser || !hasAccess) {
+    // hasAccess now checks both session token and stored token
+    if (!hasAccess) {
       return 'auth-prompt';
     }
     return 'course-selection';
@@ -52,7 +54,7 @@ export function ClassroomIntegration({ isOpen, onClose }: ClassroomIntegrationPr
       setModalState(null);
       setSelectedCourse(null);
     }
-  }, [isOpen, hasAccess, isGoogleUser]);
+  }, [isOpen, hasAccess, forceRefresh]);
 
   const handleClose = () => {
     setModalState(null);
@@ -61,7 +63,8 @@ export function ClassroomIntegration({ isOpen, onClose }: ClassroomIntegrationPr
   };
 
   const handleAuthSuccess = () => {
-    // After successful auth, show course selection
+    // After successful auth, force a refresh and show course selection
+    setForceRefresh(prev => prev + 1);
     setModalState('course-selection');
   };
 
@@ -247,6 +250,7 @@ export function ClassroomIntegration({ isOpen, onClose }: ClassroomIntegrationPr
       <GoogleAuthPromptModal
         isOpen={isOpen && modalState === 'auth-prompt'}
         onClose={handleClose}
+        onSuccess={handleAuthSuccess}
       />
       
       <ClassroomSelectionModal

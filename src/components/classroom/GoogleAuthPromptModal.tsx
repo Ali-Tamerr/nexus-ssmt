@@ -1,24 +1,26 @@
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { getClassroomOAuthUrl } from '@/lib/classroomToken';
 
 interface GoogleAuthPromptModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export function GoogleAuthPromptModal({ isOpen, onClose }: GoogleAuthPromptModalProps) {
+export function GoogleAuthPromptModal({ isOpen, onClose, onSuccess }: GoogleAuthPromptModalProps) {
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleAddGoogleAccount = async () => {
+  const handleConnectGoogleClassroom = async () => {
     try {
       setIsLoading(true);
       
-      // Open popup to our custom signin page that triggers the OAuth flow
+      // Open popup to Google OAuth for Classroom access only
+      const oauthUrl = getClassroomOAuthUrl();
       const popup = window.open(
-        '/auth/popup-signin',
-        'google-oauth-popup',
+        oauthUrl,
+        'classroom-oauth-popup',
         'width=500,height=600,scrollbars=yes,resizable=yes,left=' + 
         (window.screen.width / 2 - 250) + ',top=' + (window.screen.height / 2 - 300)
       );
@@ -31,11 +33,16 @@ export function GoogleAuthPromptModal({ isOpen, onClose }: GoogleAuthPromptModal
       const handleMessage = (event: MessageEvent) => {
         if (event.origin !== window.location.origin) return;
         
-        if (event.data.type === 'NEXUS_AUTH_SUCCESS' || event.data.type === 'OAUTH_SUCCESS') {
+        if (event.data.type === 'CLASSROOM_AUTH_SUCCESS') {
           popup.close();
           window.removeEventListener('message', handleMessage);
+          setIsLoading(false);
+          onSuccess?.();
           onClose();
-          window.location.reload(); // Refresh to get new session
+        } else if (event.data.type === 'CLASSROOM_AUTH_ERROR') {
+          popup.close();
+          window.removeEventListener('message', handleMessage);
+          setIsLoading(false);
         }
       };
 
@@ -66,52 +73,46 @@ export function GoogleAuthPromptModal({ isOpen, onClose }: GoogleAuthPromptModal
     }
   };
 
-  const handleReLogin = async () => {
-    // Same logic as handleAddGoogleAccount
-    await handleAddGoogleAccount();
-  };
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="" size="sm">
       <div className="p-6 text-center">
         <h3 className="text-lg font-semibold text-white mb-4">
-          Google Account Required
+          Connect Google Classroom
         </h3>
         
+        <p className="text-sm text-zinc-400 mb-4">
+          To import assignments and materials from Google Classroom, you need to connect your Google account.
+        </p>
+        
         <p className="text-sm text-zinc-400 mb-6">
-          Seems like you are not signed in with a google account would you like adding your google account for importing classes?
+          <span className="text-green-400">✓</span> Your current account and projects will remain unchanged.
+          <br />
+          <span className="text-green-400">✓</span> We only access your Classroom data for importing.
         </p>
         
         <div className="space-y-3">
           <Button
             variant="brand"
-            onClick={handleAddGoogleAccount}
+            onClick={handleConnectGoogleClassroom}
             loading={isLoading}
             disabled={isLoading}
             className="w-full"
           >
-            {isLoading ? 'Redirecting to Google...' : 'Add a google account'}
+            {isLoading ? 'Connecting...' : 'Connect Google Classroom'}
           </Button>
-          
-          <div className="text-xs text-zinc-500 font-medium">Or</div>
           
           <Button
             variant="secondary"
-            onClick={handleReLogin}
-            loading={isLoading}
+            onClick={onClose}
             disabled={isLoading}
             className="w-full"
           >
-            {isLoading ? 'Redirecting to Google...' : 'Re-log in with a google account'}
+            Cancel
           </Button>
-          
-          <p className="text-xs text-zinc-500 mt-2">
-            (log out then log in with google account)
-          </p>
           
           {isLoading && (
             <p className="text-xs text-blue-400 mt-3">
-              You will be redirected to Google to sign in...
+              A popup window will appear to sign in with Google...
             </p>
           )}
         </div>
