@@ -47,6 +47,7 @@ export default function CollectionPreviewPage() {
                 } else if (data.userId) {
                     try {
                         const profile = await api.profiles.getById(data.userId);
+                        console.log('Fetched Public Profile:', profile); // Debugging
                         setOwner(profile);
                     } catch (e) {
                         console.error('Failed to fetch owner profile', e);
