@@ -24,7 +24,8 @@ export function AuthSync() {
                 // Fallback: If session doesn't have ID (race condition or JWT issue), fetch from API
                 if (!userId) {
                     try {
-                        const profile = await api.profiles.getByEmail(session.user.email);
+                        const provider = (session.user as any).provider || 'email';
+                        const profile = await api.profiles.getByEmail(session.user.email, provider);
                         if (profile) userId = profile.id;
                     } catch (e) {
                         console.error('Failed to fetch user profile for sync', e);

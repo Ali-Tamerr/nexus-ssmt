@@ -90,8 +90,9 @@ async function fetchApi<T>(
         error = { message: text };
       }
 
-      // Debug: Log full backend error
-      console.error("[API] Backend error:", response.status, error);
+      if (!suppressLog) {
+        console.error("[API] Backend error:", response.status, error);
+      }
 
       if (error.errors) {
         throw new Error(JSON.stringify(error.errors));

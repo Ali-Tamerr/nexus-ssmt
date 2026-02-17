@@ -39,19 +39,14 @@ export default function CollectionPreviewPage() {
                     setProjects(data.items.map((i: ProjectCollectionItem) => i.project).filter(Boolean) as Project[]);
                 }
 
-                // Optimistically set owner if it matches the current logged-in user
-                // This ensures the creator sees their own PFP/Name correctly even if the public API has issues
+                // Prefer owner object from collection payload (new backend contract)
                 const { user } = useAuthStore.getState();
-                if (data.userId && user?.id === data.userId) {
+                if (data.owner) {
+                    setOwner(data.owner);
+                } else if (data.userId && user?.id === data.userId) {
                     setOwner(user);
-                } else if (data.userId) {
-                    try {
-                        const profile = await api.profiles.getById(data.userId);
-                        console.log('Fetched Public Profile:', profile); // Debugging
-                        setOwner(profile);
-                    } catch (e) {
-                        console.error('Failed to fetch owner profile', e);
-                    }
+                } else {
+                    setOwner(null);
                 }
             } catch (err) {
                 console.error('Failed to fetch collection:', err);
@@ -72,16 +67,33 @@ export default function CollectionPreviewPage() {
         router.push(`/project/${project.id}/preview`);
     };
 
-    const ownerDisplayName: string = owner
-        ? ((owner.displayName && owner.displayName.trim())
-            || ((owner as any).display_name && String((owner as any).display_name).trim())
-            || ((owner as any).name && String((owner as any).name).trim())
-            || ((owner as any).fullName && String((owner as any).fullName).trim())
-            || ((owner as any).full_name && String((owner as any).full_name).trim())
-            || ((owner as any).userMetadata?.full_name && String((owner as any).userMetadata.full_name).trim())
-            || ((owner as any).user_metadata?.full_name && String((owner as any).user_metadata.full_name).trim())
-            || 'Unknown User')
-        : 'Unknown User';
+    const resolveOwnerDisplayName = (profile: Profile | null): string => {
+        if (!profile) return 'Unknown User';
+
+        const emailLocalPart = profile.email?.split('@')[0]?.trim().toLowerCase() || '';
+        const candidates = [
+            profile.displayName,
+            (profile as any).fullName,
+            (profile as any).name,
+            (profile as any).display_name,
+            (profile as any).full_name,
+            (profile as any).userMetadata?.full_name,
+            (profile as any).userMetadata?.name,
+            (profile as any).user_metadata?.full_name,
+            (profile as any).user_metadata?.name,
+        ]
+            .map((value) => (typeof value === 'string' ? value.trim() : ''))
+            .filter(Boolean);
+
+        const nonEmailLike = candidates.find((value) => {
+            if (!emailLocalPart) return true;
+            return value.toLowerCase() !== emailLocalPart;
+        });
+
+        return nonEmailLike || candidates[0] || 'Unknown User';
+    };
+
+    const ownerDisplayName = resolveOwnerDisplayName(owner);
 
     const ownerInitials = ownerDisplayName
         .split(' ')

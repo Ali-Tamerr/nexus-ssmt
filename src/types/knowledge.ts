@@ -152,6 +152,7 @@ export interface ProjectCollection {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  owner?: Profile;
   items?: ProjectCollectionItem[];
   // Helper for frontend convenience, populated from items
   projects?: Project[];

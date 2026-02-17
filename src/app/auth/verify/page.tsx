@@ -4,6 +4,8 @@ import { useEffect, useState, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/useAuthStore'
+import Image from 'next/image'
+import NexusLogo from '@/assets/Logo/Logo with no circle.svg'
 
 function parseHashParams(hash: string): Record<string, string> {
     const params: Record<string, string> = {}
@@ -99,7 +101,15 @@ function VerifyContent() {
                 </div>
             ) : (
                 <>
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+                    <div className="relative h-12 w-12 mb-4">
+                        <Image
+                            src={NexusLogo}
+                            alt="Verifying..."
+                            className="animate-spin object-contain"
+                            fill
+                            priority
+                        />
+                    </div>
                     <p className="text-lg text-zinc-300">{status}</p>
                 </>
             )}

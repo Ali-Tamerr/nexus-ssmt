@@ -133,11 +133,12 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
 
       const friendlyMsg = getFriendlyErrorMessage(err);
 
-      // Contextual overrides for AuthModal specifically
-      if (friendlyMsg.includes('404') && mode === 'login') {
+      if (mode === 'signup' && (friendlyMsg.includes('409') || friendlyMsg.toLowerCase().includes('already exists') || friendlyMsg.toLowerCase().includes('email already'))) {
+        setError('An account with this email already exists. Please sign in instead.');
+        setMode('login');
+      } else if (friendlyMsg.includes('404') && mode === 'login') {
         setError('We couldn\'t find an account with that email. Please sign up.');
       } else if (friendlyMsg.includes('404') && mode === 'signup') {
-        // If registering returns 404, it's weird (endpoint missing), but generic message is okay or specific hint.
         setError('Registration service unavailable (404). Please try again later.');
       } else {
         setError(friendlyMsg);

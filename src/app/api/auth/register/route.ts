@@ -1,8 +1,8 @@
 // app/api/auth/register/route.ts
 
-import { NextResponse } from 'next/server';
-import { api } from '@/lib/api';
-import type { RegisterRequest, Profile } from '@/types/knowledge';
+import { NextResponse } from "next/server";
+import { api } from "@/lib/api";
+import type { RegisterRequest, Profile } from "@/types/knowledge";
 
 export async function POST(req: Request) {
   try {
@@ -16,19 +16,26 @@ export async function POST(req: Request) {
 
     if (!email || !password || !displayName) {
       return NextResponse.json(
-        { message: 'Missing required fields' },
-        { status: 400 }
+        { message: "Missing required fields" },
+        { status: 400 },
       );
     }
 
     // Call backend API to register user (sync with backend)
-    const apiUrl = process.env.NEXT_PRIVATE_API_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim() || 'https://localhost:7007';
-    
-    console.log('Registration route: Attempting to register user', { email, provider, apiUrl });
-    
+    const apiUrl =
+      process.env.NEXT_PRIVATE_API_URL?.trim() ||
+      process.env.NEXT_PUBLIC_API_URL?.trim() ||
+      "https://localhost:7007";
+
+    console.log("Registration route: Attempting to register user", {
+      email,
+      provider,
+      apiUrl,
+    });
+
     const response = await fetch(`${apiUrl}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         Email: email,
         Password: password,
@@ -39,39 +46,34 @@ export async function POST(req: Request) {
     });
 
     if (response.status === 409) {
-      console.log('Registration route: User already exists');
+      console.log("Registration route: User already exists");
       return NextResponse.json(
-        { message: 'Email already exists' },
-        { status: 409 }
+        { message: "Email already exists" },
+        { status: 409 },
       );
     }
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('Registration route: Backend registration failed:', { 
-        status: response.status, 
+      console.error("Registration route: Backend registration failed:", {
+        status: response.status,
         error,
-        url: `${apiUrl}/api/auth/register`
+        url: `${apiUrl}/api/auth/register`,
       });
       return NextResponse.json(
         { message: `Failed to connect to Supabase Auth service` },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
     const newUser: Profile = await response.json();
 
-    // If Google OAuth, set provider field
-    if (body.avatarUrl && newUser.provider !== 'google') {
-      newUser.provider = 'google';
-    }
-
     return NextResponse.json(newUser, { status: 201 });
   } catch (error) {
-    console.error('Registration route: Unexpected error:', error);
+    console.error("Registration route: Unexpected error:", error);
     return NextResponse.json(
-      { message: 'Failed to register user' },
-      { status: 500 }
+      { message: "Failed to register user" },
+      { status: 500 },
     );
   }
 }
