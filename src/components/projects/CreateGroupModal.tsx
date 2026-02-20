@@ -33,7 +33,6 @@ export function CreateGroupModal({ isOpen, onClose, onSubmit, loading, available
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
-    console.log('[Modal] initialData.projectIds:', initialData?.projectIds, 'selectedProjects:', Array.from(selectedProjects), 'availableProject IDs:', availableProjects.map(p => ({ id: p.id, type: typeof p.id })));
 
     if (!isOpen) return null;
 
