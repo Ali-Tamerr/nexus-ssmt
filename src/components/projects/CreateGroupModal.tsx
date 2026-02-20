@@ -61,7 +61,7 @@ export function CreateGroupModal({ isOpen, onClose, onSubmit, loading, available
             <div className="relative w-full max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl flex flex-col max-h-[90vh]">
                 <div className="mb-6 flex items-center justify-between flex-shrink-0">
                     <h3 className="text-xl font-semibold text-white">
-                        {initialData ? 'Edit Group' : 'Create Group'}
+                        {initialData ? 'Edit Collection' : 'Create Collection'}
                     </h3>
                     <button
                         onClick={onClose}
@@ -76,7 +76,7 @@ export function CreateGroupModal({ isOpen, onClose, onSubmit, loading, available
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <label htmlFor="name" className="text-sm font-medium text-zinc-300">
-                                    Group Name
+                                    Collection Name
                                 </label>
                                 <input
                                     id="name"
@@ -98,7 +98,7 @@ export function CreateGroupModal({ isOpen, onClose, onSubmit, loading, available
                                     id="description"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="What is this group about?"
+                                    placeholder="What is this collection about?"
                                     rows={3}
                                     className="w-full resize-none rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-[#355ea1] focus:outline-none"
                                 />
@@ -159,7 +159,7 @@ export function CreateGroupModal({ isOpen, onClose, onSubmit, loading, available
                                 className="flex items-center gap-2 rounded-lg bg-[#355ea1] px-4 py-2 text-sm font-medium text-white hover:bg-[#2563EB] disabled:opacity-50"
                             >
                                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                                {initialData ? 'Save Changes' : 'Create Group'}
+                                {initialData ? 'Save Changes' : 'Create Collection'}
                             </button>
                         </div>
                     </form>

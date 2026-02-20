@@ -222,7 +222,7 @@ export default function HomePage() {
       });
       setIsCreateGroupOpen(false);
       setActiveTab('groups');
-      showToast('Group created successfully');
+      showToast('Collection created successfully');
     } catch (err) {
       showToast(getFriendlyErrorMessage(err), 'error');
     }
@@ -248,7 +248,7 @@ export default function HomePage() {
         userId: user.id
       });
       setEditingGroupId(null);
-      showToast('Group updated successfully');
+      showToast('Collection updated successfully');
     } catch (err) {
       showToast(getFriendlyErrorMessage(err), 'error');
     }
@@ -293,10 +293,10 @@ export default function HomePage() {
 
       await deleteCollection(groupToDelete.id);
       setGroupToDelete(null);
-      showToast('Group deleted successfully');
+      showToast('Collection deleted successfully');
     } catch (err) {
       console.error('Failed to delete group:', err);
-      showToast('Failed to delete group', 'error');
+      showToast('Failed to delete collection', 'error');
     }
   };
 

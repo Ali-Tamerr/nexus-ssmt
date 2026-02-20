@@ -49,7 +49,7 @@ export function ProjectsToolbar({
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'groups' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
               }`}
           >
-            Groups
+            Collections
           </button>
         </div>
 
@@ -57,7 +57,7 @@ export function ProjectsToolbar({
           <SearchInput
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={activeTab === 'groups' ? "Search groups..." : "Search projects..."}
+            placeholder={activeTab === 'groups' ? "Search collections..." : "Search projects..."}
           />
         </div>
       </div>
@@ -82,7 +82,7 @@ export function ProjectsToolbar({
             icon={<Plus className="h-4 w-4" />}
             className="w-full sm:w-auto justify-center h-9"
           >
-            New group
+            New collection
           </Button>
         )}
 

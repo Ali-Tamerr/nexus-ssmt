@@ -22,8 +22,8 @@ export function GroupList({ groups, onDelete, onEdit, viewMode }: GroupListProps
         return (
             <div className="flex flex-col items-center justify-center py-20">
                 <Folder className="h-16 w-16 text-zinc-700" />
-                <p className="mt-4 text-lg text-zinc-400">No groups found</p>
-                <p className="text-sm text-zinc-500">Select projects to create a group</p>
+                <p className="mt-4 text-lg text-zinc-400">No collections found</p>
+                <p className="text-sm text-zinc-500">Create a collection to make a group with your projects</p>
             </div>
         );
     }
@@ -91,7 +91,7 @@ export function GroupList({ groups, onDelete, onEdit, viewMode }: GroupListProps
                                 <button
                                     onClick={(e) => handleShare(e, group)}
                                     className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-blue-400 transition-colors"
-                                    title="Share Group"
+                                    title="Share Collection"
                                     type="button"
                                 >
                                     <Share2 className="w-4 h-4" />
@@ -103,7 +103,7 @@ export function GroupList({ groups, onDelete, onEdit, viewMode }: GroupListProps
                                         onEdit(group);
                                     }}
                                     className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
-                                    title="Edit Group"
+                                    title="Edit Collection"
                                     type="button"
                                 >
                                     <Pencil className="w-4 h-4" />
@@ -115,7 +115,7 @@ export function GroupList({ groups, onDelete, onEdit, viewMode }: GroupListProps
                                         onDelete(group);
                                     }}
                                     className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-red-500 transition-colors"
-                                    title="Delete Group"
+                                    title="Delete Collection"
                                     type="button"
                                 >
                                     <Trash2 className="w-4 h-4" />
